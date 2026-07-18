@@ -244,6 +244,7 @@ export const seedProblems = [
   ood('ood-deck-cards', 'Design a Deck of Cards', 'Medium', 'medium'),
   ood('ood-rate-limiter', 'Design a Rate Limiter (token bucket)', 'Medium', 'medium'),
   ood('ood-amazon-locker', 'Design an Amazon Locker', 'Medium', 'medium'),
+  ood('ood-file-system', 'Design an In-Memory File System', 'Medium', 'high'),
   ood('ood-library', 'Design a Library System', 'Medium', 'low'),
   ood('ood-tic-tac-toe', 'Design Tic-Tac-Toe (OOD)', 'Medium', 'low'),
 ]

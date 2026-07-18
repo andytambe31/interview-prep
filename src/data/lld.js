@@ -258,6 +258,42 @@ export const lldProblems = [
     extensibility: ['New sizes; refrigerated lockers; multi-package orders.'],
   },
   {
+    id: 'ood-file-system',
+    title: 'Design an In-Memory File System',
+    difficulty: 'Medium',
+    freq: 'high',
+    patterns: ['Tree / Trie of path parts', 'Composite'],
+    reported: 'Reported in a recent Amazon SDE I loop.',
+    requirements: [
+      'Support ls(path), mkdir(path), addContentToFile(path, content), readContentFromFile(path).',
+      'Paths are absolute, Unix-style strings like "/a/b/c"; the file system is a tree.',
+      'ls on a directory returns its entries sorted; ls on a file returns just the file name.',
+      'mkdir creates all intermediate directories; addContentToFile appends if the file exists.',
+    ],
+    entities: [
+      { name: 'FileSystem', note: 'Holds the root directory node; exposes the 4 operations.' },
+      { name: 'Node (a.k.a. Entry)', note: 'isFile flag, children: Map<name, Node> (for dirs), content: string (for files).' },
+      { name: 'root: Node', note: 'The "/" directory; every path is resolved from here.' },
+    ],
+    relationships:
+      'A directory Node has many child Nodes keyed by name (a tree, effectively a trie keyed by path component). A file Node holds content instead of children.',
+    apis: [
+      'ls(path) → List<String>',
+      'mkdir(path)',
+      'addContentToFile(path, content)',
+      'readContentFromFile(path) → String',
+    ],
+    edgeCases: [
+      'Root path "/" (split yields empty parts — skip them).',
+      'ls on a file vs a directory (name vs sorted children).',
+      'Creating deeply nested dirs in one mkdir call.',
+      'addContentToFile when the file doesn’t exist yet (create it), or appending to existing content.',
+    ],
+    extensibility: ['rm / move / rename; file sizes & timestamps; permissions; symbolic links.'],
+    keyInsight:
+      'The whole problem is string-path parsing + tree traversal: split the path on "/", then walk (creating nodes as needed) component by component — exactly like inserting into a trie. Get that traversal helper right and all four operations are ~3 lines each.',
+  },
+  {
     id: 'ood-library',
     title: 'Design a Library System',
     difficulty: 'Medium',

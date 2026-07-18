@@ -6,6 +6,7 @@ import {
   seedLPs,
   seedResources,
   seedTodos,
+  seedRevisionCards,
 } from '../data/seed.js'
 
 export const STORAGE_KEY = 'interview-prep:v1'
@@ -60,6 +61,8 @@ export function buildInitialState() {
     todos: seedTodos.map((t) => ({ ...t })),
     // Résumé projects/experiences the user prepares dive-deep answers for.
     resumeItems: [],
+    // Revision flashcards (seeded + user-added).
+    revisionCards: seedRevisionCards.map((c) => ({ ...c })),
     // Lightweight "have you read/done this" flags for the guided steps.
     checklist: {},
     ui: { codingTopic: null },
@@ -94,5 +97,14 @@ export function mergeSeed(state) {
     // Refresh the seeded to-do list (text/priority) while preserving whether
     // you've checked each one off, plus any to-dos you added yourself.
     todos: mergeList(state.todos, seedTodos, ['done']),
+    // Keep all existing cards untouched (user may have edited them); only add
+    // newly-dictated seed cards whose id isn't present yet.
+    revisionCards: mergeCards(state.revisionCards, seedRevisionCards),
   }
+}
+
+function mergeCards(stored = [], seed = []) {
+  const storedIds = new Set(stored.map((c) => c.id))
+  const fresh = seed.filter((c) => !storedIds.has(c.id))
+  return [...stored, ...fresh]
 }

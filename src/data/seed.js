@@ -438,6 +438,75 @@ export const mostAskedBehavioral = [
 ]
 
 // ---------------------------------------------------------------------------
+// Revision flashcards. deck groups related cards; front = prompt, back = the
+// detail to recall. Seeded from dictated notes; you can add your own too.
+// ---------------------------------------------------------------------------
+const RC = (id, deck, front, back) => ({ id, deck, front, back })
+
+export const seedRevisionCards = [
+  RC('rc-info', 'Abstract Data Structures',
+    'What is “information” in a data structure?',
+    'The data that actually matters — it can be explicit or implicit. Each ADT category is defined by what it treats as information.'),
+  RC('rc-categories', 'Abstract Data Structures',
+    'What are the abstract data-structure categories, and what is the “information” in each?',
+    '1) Sequence — order is information. 2) Collections — identity is information. 3) Hierarchical — containment is information.'),
+
+  // Sequence
+  RC('rc-seq', 'Abstract Data Structures',
+    'Sequence category — what is the information?',
+    'Order is information. Members: list, stack, monotonic stack, queue, deque, priority queue.'),
+  RC('rc-list', 'Abstract Data Structures',
+    'List — what is the idea?',
+    'Position is the addressing scheme — you access by index (“the 3rd element”, “the 2nd element”). Index matters for access.'),
+  RC('rc-stack', 'Abstract Data Structures',
+    'Stack — what is the information?',
+    'Most-recent-first (LIFO). It preserves the natural ordering of the data provided; entry and exit are at the same end.'),
+  RC('rc-monostack', 'Abstract Data Structures',
+    'Monotonic stack — how is it different from a stack?',
+    'Still preserves ordering, but enforces a monotonic order — either non-increasing or non-decreasing — as elements go in/out.'),
+  RC('rc-queue', 'Abstract Data Structures',
+    'Queue — what does it encode?',
+    'Fairness / priority for the longest-waiting element (FIFO). One end is for entry, the other for exit.'),
+  RC('rc-deque', 'Abstract Data Structures',
+    'Deque — what is the idea?',
+    'Both ends are open. The information lies on the boundaries of a window (front and back).'),
+  RC('rc-pq', 'Abstract Data Structures',
+    'Priority queue — what is the information?',
+    'The ranking of elements defined by a comparator, not arrival time. The most important element is served first, not the earliest.'),
+
+  // Collections
+  RC('rc-collections', 'Abstract Data Structures',
+    'Collections category — what is the information?',
+    'Identity is information. Members: set, multiset, map.'),
+  RC('rc-set', 'Abstract Data Structures',
+    'Set — what is the idea?',
+    'Membership check (is a member present?). No ordering or count — and because it drops order and count, lookup/search is fast.'),
+  RC('rc-multiset', 'Abstract Data Structures',
+    'Multiset — what does it add over a set?',
+    'Membership + count. Still no ordering.'),
+  RC('rc-map', 'Abstract Data Structures',
+    'Map — what is the idea?',
+    'Membership + payload. The payload can be any information — a count, a difference, anything you attach to the key.'),
+
+  // Hierarchical
+  RC('rc-hier', 'Abstract Data Structures',
+    'Hierarchical category — what is the information?',
+    'Containment is information — whether one thing is inside another. Members: tree, binary tree, BST, heap.'),
+  RC('rc-tree', 'Abstract Data Structures',
+    'Tree — what does it capture?',
+    'Natural levels, ownership, and parent–child relationships.'),
+  RC('rc-bintree', 'Abstract Data Structures',
+    'Binary tree — what is the idea?',
+    'A tree with a branching cap of two. No ordering is preserved.'),
+  RC('rc-bst', 'Abstract Data Structures',
+    'Binary search tree — what ordering does it maintain?',
+    'A binary tree with ordering: all left descendants < root < all right descendants.'),
+  RC('rc-heap', 'Abstract Data Structures',
+    'Heap — what is the information?',
+    'A weak ordering invariant that exposes the extreme element (smallest / largest / most-frequent). The information is the extreme, not a full sort.'),
+]
+
+// ---------------------------------------------------------------------------
 export const seedResources = [
   { id: 'r-topics', category: 'Official', title: 'Amazon Software Development Topics', url: 'https://www.amazon.jobs/en/landing_pages/software-development-topics', note: 'The technical areas listed in your invite.' },
   { id: 'r-lp', category: 'Official', title: 'Amazon Leadership Principles', url: 'https://www.amazon.jobs/content/en/our-workplace/leadership-principles', note: 'The 16 LPs — memorize the themes, not the words.' },

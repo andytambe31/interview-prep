@@ -1,77 +1,59 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from './store/StoreContext.jsx'
-import { daysUntil } from './components/common.jsx'
-import Dashboard from './components/Dashboard.jsx'
-import Schedule from './components/Schedule.jsx'
-import CodingPrep from './components/CodingPrep.jsx'
-import LeadershipPrinciples from './components/LeadershipPrinciples.jsx'
-import Resources from './components/Resources.jsx'
-import Insights from './components/Insights.jsx'
-import DataMenu from './components/DataMenu.jsx'
+import { daysUntil, interviewDate } from './lib/focus.js'
+import Today from './components/Today.jsx'
+import TheLoop from './components/TheLoop.jsx'
+import Coding from './components/Coding.jsx'
+import Behavioral from './components/Behavioral.jsx'
+import Logistics from './components/Logistics.jsx'
+import SettingsDrawer from './components/SettingsDrawer.jsx'
 
 const NAV = [
-  { id: 'dashboard', label: 'Dashboard', icon: '◧' },
-  { id: 'schedule', label: 'Schedule & Logistics', icon: '📅' },
-  { id: 'coding', label: 'Coding Prep', icon: '⌨' },
-  { id: 'lps', label: 'Leadership Principles', icon: '★' },
-  { id: 'insights', label: 'Insights & Playbook', icon: '💡' },
-  { id: 'resources', label: 'Resources & To-Dos', icon: '🔗' },
+  { id: 'today', label: 'Today', hint: 'Your next steps' },
+  { id: 'loop', label: 'The Loop', hint: 'What to expect' },
+  { id: 'coding', label: 'Coding', hint: 'Problems & patterns' },
+  { id: 'behavioral', label: 'Behavioral', hint: 'Principles & stories' },
+  { id: 'logistics', label: 'Logistics', hint: 'Schedule & day-of' },
 ]
 
 function useHashRoute(defaultRoute) {
   const [route, setRoute] = useState(() => window.location.hash.replace('#', '') || defaultRoute)
   useEffect(() => {
-    const onHash = () => setRoute(window.location.hash.replace('#', '') || defaultRoute)
+    const onHash = () => {
+      setRoute(window.location.hash.replace('#', '') || defaultRoute)
+      window.scrollTo({ top: 0 })
+    }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [defaultRoute])
   const go = (r) => {
-    window.location.hash = r
-    setRoute(r)
+    if (('#' + r) === window.location.hash) setRoute(r)
+    else window.location.hash = r
   }
   return [route, go]
 }
 
-function ThemeToggle() {
-  const { state, dispatch } = useStore()
-  const order = ['system', 'light', 'dark']
-  const next = order[(order.indexOf(state.ui.theme) + 1) % order.length]
-  const icon = state.ui.theme === 'dark' ? '🌙' : state.ui.theme === 'light' ? '☀️' : '💻'
-  return (
-    <button
-      className="btn-ghost"
-      title={`Theme: ${state.ui.theme} (click for ${next})`}
-      onClick={() => dispatch({ type: 'SET_THEME', theme: next })}
-    >
-      <span>{icon}</span>
-    </button>
-  )
-}
-
 export default function App() {
   const { state } = useStore()
-  const [route, go] = useHashRoute('dashboard')
+  const [route, go] = useHashRoute('today')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
-  const chosenDate = state.schedule.chosen.date
-  const firstAvail = state.schedule.availability[0]?.date
-  const countdownDate = chosenDate || firstAvail
-  const days = daysUntil(countdownDate)
+  const days = daysUntil(interviewDate(state))
+  const firstName = state.candidate.name.split(' ')[0]
 
   const view = () => {
     switch (route) {
-      case 'schedule':
-        return <Schedule />
+      case 'loop':
+        return <TheLoop />
       case 'coding':
-        return <CodingPrep />
-      case 'lps':
-        return <LeadershipPrinciples />
-      case 'insights':
-        return <Insights />
-      case 'resources':
-        return <Resources />
+        return <Coding />
+      case 'behavioral':
+        return <Behavioral />
+      case 'logistics':
+        return <Logistics />
       default:
-        return <Dashboard onNavigate={go} />
+        return <Today onNavigate={go} />
     }
   }
 
@@ -79,90 +61,70 @@ export default function App() {
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-64 transform border-r border-slate-200 bg-white transition-transform dark:border-slate-800 dark:bg-slate-900 md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 flex w-64 transform flex-col border-r border-line bg-surface transition-transform md:static md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-full flex-col">
-          <div className="border-b border-slate-200 p-5 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 font-bold text-white">
-                A
-              </div>
-              <div>
-                <div className="text-sm font-bold leading-tight text-slate-900 dark:text-white">
-                  Interview Command
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Amazon SDE Loop</div>
+        <div className="px-6 pb-6 pt-7">
+          <div className="font-serif text-lg font-semibold leading-none">Interview&nbsp;Room</div>
+          <div className="mt-1 text-xs text-faint">{firstName}’s Amazon SDE prep</div>
+
+          {days !== null && (
+            <div className="mt-5 rounded-2xl border border-line bg-paper px-4 py-3">
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-serif text-3xl font-semibold text-clay-600">
+                  {days > 0 ? days : days === 0 ? '0' : '—'}
+                </span>
+                <span className="text-xs text-muted">
+                  {days > 1 ? 'days to go' : days === 1 ? 'day to go' : days === 0 ? 'today' : 'set a date'}
+                </span>
               </div>
             </div>
-            {days !== null && (
-              <div className="mt-4 rounded-lg bg-brand-50 p-3 text-center dark:bg-brand-900/30">
-                <div className="text-2xl font-extrabold text-brand-700 dark:text-brand-300">
-                  {days > 0 ? `${days}` : days === 0 ? 'Today' : `${Math.abs(days)}d ago`}
-                </div>
-                <div className="text-[11px] font-medium uppercase tracking-wide text-brand-600/80 dark:text-brand-300/70">
-                  {days > 0 ? `days to ${chosenDate ? 'interview' : 'first slot'}` : ''}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
+        </div>
 
-          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-            {NAV.map((item) => (
+        <nav className="flex-1 space-y-1 px-3">
+          {NAV.map((item) => {
+            const active = route === item.id
+            return (
               <button
                 key={item.id}
                 onClick={() => {
                   go(item.id)
                   setMobileOpen(false)
                 }}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  route === item.id
-                    ? 'bg-brand-600 text-white'
-                    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                className={`group flex w-full flex-col rounded-xl px-3 py-2.5 text-left transition ${
+                  active ? 'bg-clay-50' : 'hover:bg-paper'
                 }`}
               >
-                <span className="w-5 text-center">{item.icon}</span>
-                {item.label}
+                <span className={`text-sm font-medium ${active ? 'text-clay-700' : 'text-ink'}`}>{item.label}</span>
+                <span className={`text-xs ${active ? 'text-clay-600/70' : 'text-faint'}`}>{item.hint}</span>
               </button>
-            ))}
-          </nav>
+            )
+          })}
+        </nav>
 
-          <div className="border-t border-slate-200 p-3 dark:border-slate-800">
-            <DataMenu />
-            <p className="mt-3 px-1 text-[11px] leading-snug text-slate-400">
-              Data is saved in this browser only (localStorage). Export regularly to back up.
-            </p>
-          </div>
+        <div className="px-3 pb-5 pt-2">
+          <button className="btn-quiet w-full justify-start px-3 text-sm" onClick={() => setSettingsOpen(true)}>
+            <span className="text-faint">⚙</span> Settings & backup
+          </button>
         </div>
       </aside>
 
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-20 bg-black/40 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      {mobileOpen && <div className="fixed inset-0 z-20 bg-ink/20 md:hidden" onClick={() => setMobileOpen(false)} />}
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 md:px-8">
-          <div className="flex items-center gap-3">
-            <button className="btn-ghost md:hidden" onClick={() => setMobileOpen(true)}>
-              ☰
-            </button>
-            <div className="text-sm text-slate-500 dark:text-slate-400">
-              <span className="font-semibold text-slate-800 dark:text-slate-100">
-                {state.candidate.name}
-              </span>{' '}
-              · {state.candidate.role} · {state.candidate.office}
-            </div>
-          </div>
-          <ThemeToggle />
+        <header className="flex items-center gap-3 border-b border-line px-4 py-3 md:hidden">
+          <button className="btn-quiet px-2" onClick={() => setMobileOpen(true)}>
+            ☰
+          </button>
+          <span className="font-serif font-semibold">Interview Room</span>
         </header>
-
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-8">{view()}</main>
+        <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-10 md:px-10">{view()}</main>
       </div>
+
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }

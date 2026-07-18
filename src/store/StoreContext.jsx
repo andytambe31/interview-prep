@@ -81,8 +81,10 @@ function reducer(state, action) {
     }
     case 'DELETE_RESOURCE':
       return { ...state, resources: state.resources.filter((r) => r.id !== action.id) }
-    case 'SET_THEME':
-      return { ...state, ui: { ...state.ui, theme: action.theme } }
+    case 'SET_UI':
+      return { ...state, ui: { ...state.ui, ...action.patch } }
+    case 'SET_CHECK':
+      return { ...state, checklist: { ...state.checklist, [action.id]: action.value } }
     case 'IMPORT':
       return action.state
     case 'RESET':
@@ -120,18 +122,6 @@ export function StoreProvider({ children }) {
       console.warn('Failed to persist state.', err)
     }
   }, [state])
-
-  // Apply theme to <html>.
-  useEffect(() => {
-    const root = document.documentElement
-    const theme = state.ui.theme
-    const prefersDark =
-      typeof window !== 'undefined' &&
-      window.matchMedia &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-    const dark = theme === 'dark' || (theme === 'system' && prefersDark)
-    root.classList.toggle('dark', dark)
-  }, [state.ui.theme])
 
   const value = useMemo(() => ({ state, dispatch }), [state])
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

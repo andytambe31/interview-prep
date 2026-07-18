@@ -39,17 +39,193 @@ export const seedLogistics = {
 }
 
 // ---------------------------------------------------------------------------
-// Coding problems — high-frequency Amazon SDE-I / new-grad set, grouped by
-// topic. difficulty: Easy | Medium | Hard. freq: high | medium | low.
-// status is a user field (todo | attempted | solved).
+// Coding problems. Backbone = the NeetCode 150 (pattern-based), with an Amazon
+// frequency overlay (freq: high | medium | low) and a `neet` flag so the list
+// can be filtered to just the 150. A few Amazon-signature problems not in the
+// 150 are appended. Object-oriented design lives in its own topic.
 // ---------------------------------------------------------------------------
-const P = (id, title, topic, difficulty, freq, url) => ({
-  id,
+const slugify = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+const URL_OVERRIDE = {
+  'Pow(x, n)': 'powx-n',
+  'Insert Delete GetRandom O(1)': 'insert-delete-getrandom-o1',
+}
+
+// Amazon frequency overlay by canonical title.
+const HIGH = new Set([
+  'Two Sum', 'Best Time to Buy and Sell Stock', 'Product of Array Except Self', 'Group Anagrams',
+  'Longest Consecutive Sequence', '3Sum', 'Container With Most Water', 'Trapping Rain Water',
+  'Longest Substring Without Repeating Characters', 'Minimum Window Substring', 'Valid Parentheses',
+  'Search in Rotated Sorted Array', 'Koko Eating Bananas', 'Merge Two Sorted Lists', 'Merge k Sorted Lists',
+  'Copy List with Random Pointer', 'Add Two Numbers', 'LRU Cache', 'Binary Tree Level Order Traversal',
+  'Binary Tree Right Side View', 'Lowest Common Ancestor of a Binary Search Tree', 'Subtree of Another Tree',
+  'Serialize and Deserialize Binary Tree', 'Word Search II', 'K Closest Points to Origin',
+  'Find Median from Data Stream', 'Number of Islands', 'Rotting Oranges', 'Course Schedule',
+  'Course Schedule II', 'Word Ladder', 'Alien Dictionary', 'Longest Palindromic Substring', 'Coin Change',
+  'Word Break', 'Merge Intervals', 'Meeting Rooms II', 'Maximum Subarray', 'Jump Game', 'Partition Labels',
+  // Amazon-signature extras
+  'Reorder Data in Log Files', 'Critical Connections in a Network', 'Search Suggestions System',
+  'Top K Frequent Words', 'Fruit Into Baskets', 'Reorganize String',
+])
+const MED = new Set([
+  'Valid Anagram', 'Contains Duplicate', 'Top K Frequent Elements', 'Encode and Decode Strings',
+  'Two Sum II - Input Array Is Sorted', 'Longest Repeating Character Replacement', 'Min Stack',
+  'Daily Temperatures', 'Search a 2D Matrix', 'Find Minimum in Rotated Sorted Array',
+  'Median of Two Sorted Arrays', 'Time Based Key-Value Store', 'Reorder List', 'Remove Nth Node From End of List',
+  'Find the Duplicate Number', 'Reverse Nodes in k-Group', 'Validate Binary Search Tree',
+  'Kth Smallest Element in a BST', 'Construct Binary Tree from Preorder and Inorder Traversal',
+  'Binary Tree Maximum Path Sum', 'Diameter of Binary Tree', 'Implement Trie (Prefix Tree)',
+  'Design Add and Search Words Data Structure', 'Subsets', 'Combination Sum', 'Permutations', 'Word Search',
+  'Letter Combinations of a Phone Number', 'Kth Largest Element in an Array', 'Task Scheduler', 'Design Twitter',
+  'Clone Graph', 'Pacific Atlantic Water Flow', 'Surrounded Regions',
+  'Number of Connected Components in an Undirected Graph', 'Graph Valid Tree', 'House Robber', 'House Robber II',
+  'Decode Ways', 'Maximum Product Subarray', 'Longest Increasing Subsequence', 'Unique Paths',
+  'Longest Common Subsequence', 'Edit Distance', 'Insert Interval', 'Non-overlapping Intervals', 'Gas Station',
+  'Rotate Image', 'Spiral Matrix', 'Set Matrix Zeroes', 'Single Number', 'Number of 1 Bits', 'Counting Bits',
+  'Missing Number', 'Reverse Integer', 'Reverse Linked List', 'Reverse Bits',
+  // extras
+  'Most Common Word', 'Analyze User Website Visit Pattern', 'All Nodes Distance K in Binary Tree',
+  'Concatenated Words', 'Minimum Cost to Connect Sticks', 'Maximum Ice Cream Bars', 'Basic Calculator II',
+  'Insert Delete GetRandom O(1)', 'LFU Cache', 'Boats to Save People', 'Binary Tree Zigzag Level Order Traversal',
+])
+const fq = (t) => (HIGH.has(t) ? 'high' : MED.has(t) ? 'medium' : 'low')
+
+const mk = (title, topic, difficulty, neet) => ({
+  id: slugify(title),
   title,
   topic,
   difficulty,
+  freq: fq(title),
+  neet,
+  url: 'https://leetcode.com/problems/' + (URL_OVERRIDE[title] || slugify(title)) + '/',
+  status: 'todo',
+  confidence: 0,
+  notes: '',
+  lastPracticed: '',
+})
+
+// The NeetCode 150, grouped by our topic names. [title, difficulty]
+const NEET = {
+  'Arrays & Hashing': [
+    ['Contains Duplicate', 'Easy'], ['Valid Anagram', 'Easy'], ['Two Sum', 'Easy'],
+    ['Group Anagrams', 'Medium'], ['Top K Frequent Elements', 'Medium'], ['Encode and Decode Strings', 'Medium'],
+    ['Product of Array Except Self', 'Medium'], ['Valid Sudoku', 'Medium'], ['Longest Consecutive Sequence', 'Medium'],
+  ],
+  'Two Pointers': [
+    ['Valid Palindrome', 'Easy'], ['Two Sum II - Input Array Is Sorted', 'Medium'], ['3Sum', 'Medium'],
+    ['Container With Most Water', 'Medium'], ['Trapping Rain Water', 'Hard'],
+  ],
+  'Sliding Window': [
+    ['Best Time to Buy and Sell Stock', 'Easy'], ['Longest Substring Without Repeating Characters', 'Medium'],
+    ['Longest Repeating Character Replacement', 'Medium'], ['Permutation in String', 'Medium'],
+    ['Minimum Window Substring', 'Hard'], ['Sliding Window Maximum', 'Hard'],
+  ],
+  'Stack': [
+    ['Valid Parentheses', 'Easy'], ['Min Stack', 'Medium'], ['Evaluate Reverse Polish Notation', 'Medium'],
+    ['Generate Parentheses', 'Medium'], ['Daily Temperatures', 'Medium'], ['Car Fleet', 'Medium'],
+    ['Largest Rectangle in Histogram', 'Hard'],
+  ],
+  'Binary Search': [
+    ['Binary Search', 'Easy'], ['Search a 2D Matrix', 'Medium'], ['Koko Eating Bananas', 'Medium'],
+    ['Find Minimum in Rotated Sorted Array', 'Medium'], ['Search in Rotated Sorted Array', 'Medium'],
+    ['Time Based Key-Value Store', 'Medium'], ['Median of Two Sorted Arrays', 'Hard'],
+  ],
+  'Linked List': [
+    ['Reverse Linked List', 'Easy'], ['Merge Two Sorted Lists', 'Easy'], ['Reorder List', 'Medium'],
+    ['Remove Nth Node From End of List', 'Medium'], ['Copy List with Random Pointer', 'Medium'],
+    ['Add Two Numbers', 'Medium'], ['Linked List Cycle', 'Easy'], ['Find the Duplicate Number', 'Medium'],
+    ['LRU Cache', 'Medium'], ['Merge k Sorted Lists', 'Hard'], ['Reverse Nodes in k-Group', 'Hard'],
+  ],
+  'Trees': [
+    ['Invert Binary Tree', 'Easy'], ['Maximum Depth of Binary Tree', 'Easy'], ['Diameter of Binary Tree', 'Easy'],
+    ['Balanced Binary Tree', 'Easy'], ['Same Tree', 'Easy'], ['Subtree of Another Tree', 'Easy'],
+    ['Lowest Common Ancestor of a Binary Search Tree', 'Medium'], ['Binary Tree Level Order Traversal', 'Medium'],
+    ['Binary Tree Right Side View', 'Medium'], ['Count Good Nodes in Binary Tree', 'Medium'],
+    ['Validate Binary Search Tree', 'Medium'], ['Kth Smallest Element in a BST', 'Medium'],
+    ['Construct Binary Tree from Preorder and Inorder Traversal', 'Medium'],
+    ['Binary Tree Maximum Path Sum', 'Hard'], ['Serialize and Deserialize Binary Tree', 'Hard'],
+  ],
+  'Tries': [
+    ['Implement Trie (Prefix Tree)', 'Medium'], ['Design Add and Search Words Data Structure', 'Medium'],
+    ['Word Search II', 'Hard'],
+  ],
+  'Backtracking': [
+    ['Subsets', 'Medium'], ['Combination Sum', 'Medium'], ['Permutations', 'Medium'], ['Subsets II', 'Medium'],
+    ['Combination Sum II', 'Medium'], ['Word Search', 'Medium'], ['Palindrome Partitioning', 'Medium'],
+    ['Letter Combinations of a Phone Number', 'Medium'], ['N-Queens', 'Hard'],
+  ],
+  'Heaps': [
+    ['Kth Largest Element in a Stream', 'Easy'], ['Last Stone Weight', 'Easy'], ['K Closest Points to Origin', 'Medium'],
+    ['Kth Largest Element in an Array', 'Medium'], ['Task Scheduler', 'Medium'], ['Design Twitter', 'Medium'],
+    ['Find Median from Data Stream', 'Hard'],
+  ],
+  'Graphs': [
+    ['Number of Islands', 'Medium'], ['Clone Graph', 'Medium'], ['Max Area of Island', 'Medium'],
+    ['Pacific Atlantic Water Flow', 'Medium'], ['Surrounded Regions', 'Medium'], ['Rotting Oranges', 'Medium'],
+    ['Walls and Gates', 'Medium'], ['Course Schedule', 'Medium'], ['Course Schedule II', 'Medium'],
+    ['Redundant Connection', 'Medium'], ['Number of Connected Components in an Undirected Graph', 'Medium'],
+    ['Graph Valid Tree', 'Medium'], ['Word Ladder', 'Hard'],
+    ['Reconstruct Itinerary', 'Hard'], ['Min Cost to Connect All Points', 'Medium'], ['Network Delay Time', 'Medium'],
+    ['Swim in Rising Water', 'Hard'], ['Alien Dictionary', 'Hard'], ['Cheapest Flights Within K Stops', 'Medium'],
+  ],
+  'Dynamic Programming': [
+    ['Climbing Stairs', 'Easy'], ['Min Cost Climbing Stairs', 'Easy'], ['House Robber', 'Medium'],
+    ['House Robber II', 'Medium'], ['Longest Palindromic Substring', 'Medium'], ['Palindromic Substrings', 'Medium'],
+    ['Decode Ways', 'Medium'], ['Coin Change', 'Medium'], ['Maximum Product Subarray', 'Medium'],
+    ['Word Break', 'Medium'], ['Longest Increasing Subsequence', 'Medium'], ['Partition Equal Subset Sum', 'Medium'],
+    ['Unique Paths', 'Medium'], ['Longest Common Subsequence', 'Medium'],
+    ['Best Time to Buy and Sell Stock with Cooldown', 'Medium'], ['Coin Change II', 'Medium'],
+    ['Target Sum', 'Medium'], ['Interleaving String', 'Medium'], ['Longest Increasing Path in a Matrix', 'Hard'],
+    ['Distinct Subsequences', 'Hard'], ['Edit Distance', 'Medium'], ['Burst Balloons', 'Hard'],
+    ['Regular Expression Matching', 'Hard'],
+  ],
+  'Greedy': [
+    ['Maximum Subarray', 'Medium'], ['Jump Game', 'Medium'], ['Jump Game II', 'Medium'], ['Gas Station', 'Medium'],
+    ['Hand of Straights', 'Medium'], ['Merge Triplets to Form Target Triplet', 'Medium'], ['Partition Labels', 'Medium'],
+    ['Valid Parenthesis String', 'Medium'],
+  ],
+  'Intervals': [
+    ['Insert Interval', 'Medium'], ['Merge Intervals', 'Medium'], ['Non-overlapping Intervals', 'Medium'],
+    ['Meeting Rooms', 'Easy'], ['Meeting Rooms II', 'Medium'], ['Minimum Interval to Include Each Query', 'Hard'],
+  ],
+  'Math & Geometry': [
+    ['Rotate Image', 'Medium'], ['Spiral Matrix', 'Medium'], ['Set Matrix Zeroes', 'Medium'], ['Happy Number', 'Easy'],
+    ['Plus One', 'Easy'], ['Pow(x, n)', 'Medium'], ['Multiply Strings', 'Medium'], ['Detect Squares', 'Medium'],
+  ],
+  'Bit Manipulation': [
+    ['Single Number', 'Easy'], ['Number of 1 Bits', 'Easy'], ['Counting Bits', 'Easy'], ['Reverse Bits', 'Easy'],
+    ['Missing Number', 'Easy'], ['Sum of Two Integers', 'Medium'], ['Reverse Integer', 'Medium'],
+  ],
+}
+
+// Amazon-signature problems NOT in the NeetCode 150. [title, topic, difficulty]
+const AMAZON_EXTRA = [
+  ['Reorder Data in Log Files', 'Strings', 'Easy'],
+  ['Most Common Word', 'Strings', 'Easy'],
+  ['Analyze User Website Visit Pattern', 'Arrays & Hashing', 'Medium'],
+  ['Boats to Save People', 'Two Pointers', 'Medium'],
+  ['Fruit Into Baskets', 'Sliding Window', 'Medium'],
+  ['Basic Calculator II', 'Stack', 'Medium'],
+  ['Binary Tree Zigzag Level Order Traversal', 'Trees', 'Medium'],
+  ['All Nodes Distance K in Binary Tree', 'Trees', 'Medium'],
+  ['Search Suggestions System', 'Tries', 'Medium'],
+  ['Concatenated Words', 'Tries', 'Hard'],
+  ['Critical Connections in a Network', 'Graphs', 'Hard'],
+  ['Top K Frequent Words', 'Heaps', 'Medium'],
+  ['Reorganize String', 'Heaps', 'Medium'],
+  ['Minimum Cost to Connect Sticks', 'Heaps', 'Medium'],
+  ['Maximum Ice Cream Bars', 'Greedy', 'Medium'],
+  ['Insert Delete GetRandom O(1)', 'Design', 'Medium'],
+  ['LFU Cache', 'Design', 'Hard'],
+]
+
+const ood = (id, title, difficulty, freq) => ({
+  id,
+  title,
+  topic: 'Object-Oriented Design',
+  difficulty,
   freq,
-  url,
+  neet: false,
+  url: '',
   status: 'todo',
   confidence: 0,
   notes: '',
@@ -57,149 +233,22 @@ const P = (id, title, topic, difficulty, freq, url) => ({
 })
 
 export const seedProblems = [
-  // Arrays & Hashing
-  P('two-sum', 'Two Sum', 'Arrays & Hashing', 'Easy', 'high', 'https://leetcode.com/problems/two-sum/'),
-  P('best-time-stock', 'Best Time to Buy and Sell Stock', 'Arrays & Hashing', 'Easy', 'high', 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock/'),
-  P('maximum-subarray', 'Maximum Subarray (Kadane)', 'Arrays & Hashing', 'Medium', 'high', 'https://leetcode.com/problems/maximum-subarray/'),
-  P('product-except-self', 'Product of Array Except Self', 'Arrays & Hashing', 'Medium', 'high', 'https://leetcode.com/problems/product-of-array-except-self/'),
-  P('contains-duplicate', 'Contains Duplicate', 'Arrays & Hashing', 'Easy', 'medium', 'https://leetcode.com/problems/contains-duplicate/'),
-  P('group-anagrams', 'Group Anagrams', 'Arrays & Hashing', 'Medium', 'medium', 'https://leetcode.com/problems/group-anagrams/'),
-  P('valid-anagram', 'Valid Anagram', 'Arrays & Hashing', 'Easy', 'medium', 'https://leetcode.com/problems/valid-anagram/'),
-  P('longest-consecutive', 'Longest Consecutive Sequence', 'Arrays & Hashing', 'Medium', 'medium', 'https://leetcode.com/problems/longest-consecutive-sequence/'),
-  P('subarray-sum-k', 'Subarray Sum Equals K', 'Arrays & Hashing', 'Medium', 'medium', 'https://leetcode.com/problems/subarray-sum-equals-k/'),
-  P('spiral-matrix', 'Spiral Matrix', 'Arrays & Hashing', 'Medium', 'medium', 'https://leetcode.com/problems/spiral-matrix/'),
-  P('rotate-image', 'Rotate Image', 'Arrays & Hashing', 'Medium', 'low', 'https://leetcode.com/problems/rotate-image/'),
-
-  // Strings
-  P('longest-palindromic', 'Longest Palindromic Substring', 'Strings', 'Medium', 'high', 'https://leetcode.com/problems/longest-palindromic-substring/'),
-  P('valid-palindrome', 'Valid Palindrome', 'Strings', 'Easy', 'medium', 'https://leetcode.com/problems/valid-palindrome/'),
-  P('atoi', 'String to Integer (atoi)', 'Strings', 'Medium', 'low', 'https://leetcode.com/problems/string-to-integer-atoi/'),
-
-  // Two Pointers
-  P('3sum', '3Sum', 'Two Pointers', 'Medium', 'high', 'https://leetcode.com/problems/3sum/'),
-  P('container-water', 'Container With Most Water', 'Two Pointers', 'Medium', 'high', 'https://leetcode.com/problems/container-with-most-water/'),
-  P('trapping-rain', 'Trapping Rain Water', 'Two Pointers', 'Hard', 'high', 'https://leetcode.com/problems/trapping-rain-water/'),
-  P('sort-colors', 'Sort Colors', 'Two Pointers', 'Medium', 'medium', 'https://leetcode.com/problems/sort-colors/'),
-  P('boats-save-people', 'Boats to Save People', 'Two Pointers', 'Medium', 'medium', 'https://leetcode.com/problems/boats-to-save-people/'),
-
-  // Sliding Window
-  P('longest-substring', 'Longest Substring Without Repeating Characters', 'Sliding Window', 'Medium', 'high', 'https://leetcode.com/problems/longest-substring-without-repeating-characters/'),
-  P('min-window-substring', 'Minimum Window Substring', 'Sliding Window', 'Hard', 'high', 'https://leetcode.com/problems/minimum-window-substring/'),
-  P('fruit-baskets', 'Fruit Into Baskets', 'Sliding Window', 'Medium', 'high', 'https://leetcode.com/problems/fruit-into-baskets/'),
-  P('sliding-window-max', 'Sliding Window Maximum', 'Sliding Window', 'Hard', 'medium', 'https://leetcode.com/problems/sliding-window-maximum/'),
-
-  // Stack
-  P('valid-parentheses', 'Valid Parentheses', 'Stack', 'Easy', 'high', 'https://leetcode.com/problems/valid-parentheses/'),
-  P('min-stack', 'Min Stack', 'Stack', 'Medium', 'medium', 'https://leetcode.com/problems/min-stack/'),
-  P('daily-temperatures', 'Daily Temperatures', 'Stack', 'Medium', 'medium', 'https://leetcode.com/problems/daily-temperatures/'),
-  P('decode-string', 'Decode String', 'Stack', 'Medium', 'medium', 'https://leetcode.com/problems/decode-string/'),
-  P('asteroid-collision', 'Asteroid Collision', 'Stack', 'Medium', 'medium', 'https://leetcode.com/problems/asteroid-collision/'),
-  P('largest-rectangle', 'Largest Rectangle in Histogram', 'Stack', 'Hard', 'low', 'https://leetcode.com/problems/largest-rectangle-in-histogram/'),
-
-  // Binary Search
-  P('koko-bananas', 'Koko Eating Bananas', 'Binary Search', 'Medium', 'high', 'https://leetcode.com/problems/koko-eating-bananas/'),
-  P('search-rotated', 'Search in Rotated Sorted Array', 'Binary Search', 'Medium', 'high', 'https://leetcode.com/problems/search-in-rotated-sorted-array/'),
-  P('ship-packages', 'Capacity To Ship Packages Within D Days', 'Binary Search', 'Medium', 'medium', 'https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/'),
-  P('find-min-rotated', 'Find Minimum in Rotated Sorted Array', 'Binary Search', 'Medium', 'medium', 'https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/'),
-  P('median-two-sorted', 'Median of Two Sorted Arrays', 'Binary Search', 'Hard', 'medium', 'https://leetcode.com/problems/median-of-two-sorted-arrays/'),
-
-  // Linked List
-  P('reverse-linked-list', 'Reverse Linked List', 'Linked List', 'Easy', 'high', 'https://leetcode.com/problems/reverse-linked-list/'),
-  P('merge-two-lists', 'Merge Two Sorted Lists', 'Linked List', 'Easy', 'high', 'https://leetcode.com/problems/merge-two-sorted-lists/'),
-  P('add-two-numbers', 'Add Two Numbers', 'Linked List', 'Medium', 'high', 'https://leetcode.com/problems/add-two-numbers/'),
-  P('copy-random-list', 'Copy List with Random Pointer', 'Linked List', 'Medium', 'medium', 'https://leetcode.com/problems/copy-list-with-random-pointer/'),
-  P('remove-nth-node', 'Remove Nth Node From End of List', 'Linked List', 'Medium', 'medium', 'https://leetcode.com/problems/remove-nth-node-from-end-of-list/'),
-  P('reverse-k-group', 'Reverse Nodes in k-Group', 'Linked List', 'Hard', 'low', 'https://leetcode.com/problems/reverse-nodes-in-k-group/'),
-
-  // Trees
-  P('level-order', 'Binary Tree Level Order Traversal', 'Trees', 'Medium', 'high', 'https://leetcode.com/problems/binary-tree-level-order-traversal/'),
-  P('lca-binary-tree', 'Lowest Common Ancestor of a Binary Tree', 'Trees', 'Medium', 'high', 'https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/'),
-  P('serialize-tree', 'Serialize and Deserialize Binary Tree', 'Trees', 'Hard', 'high', 'https://leetcode.com/problems/serialize-and-deserialize-binary-tree/'),
-  P('zigzag-level', 'Binary Tree Zigzag Level Order Traversal', 'Trees', 'Medium', 'medium', 'https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal/'),
-  P('max-path-sum', 'Binary Tree Maximum Path Sum', 'Trees', 'Hard', 'medium', 'https://leetcode.com/problems/binary-tree-maximum-path-sum/'),
-  P('validate-bst', 'Validate Binary Search Tree', 'Trees', 'Medium', 'medium', 'https://leetcode.com/problems/validate-binary-search-tree/'),
-  P('max-depth', 'Maximum Depth of Binary Tree', 'Trees', 'Easy', 'low', 'https://leetcode.com/problems/maximum-depth-of-binary-tree/'),
-
-  // Tries
-  P('implement-trie', 'Implement Trie (Prefix Tree)', 'Tries', 'Medium', 'medium', 'https://leetcode.com/problems/implement-trie-prefix-tree/'),
-  P('word-search-ii', 'Word Search II', 'Tries', 'Hard', 'medium', 'https://leetcode.com/problems/word-search-ii/'),
-  P('autocomplete-system', 'Design Search Autocomplete System', 'Tries', 'Hard', 'low', 'https://leetcode.com/problems/design-search-autocomplete-system/'),
-
-  // Graphs / BFS / DFS
-  P('number-of-islands', 'Number of Islands', 'Graphs', 'Medium', 'high', 'https://leetcode.com/problems/number-of-islands/'),
-  P('course-schedule', 'Course Schedule', 'Graphs', 'Medium', 'high', 'https://leetcode.com/problems/course-schedule/'),
-  P('rotting-oranges', 'Rotting Oranges', 'Graphs', 'Medium', 'high', 'https://leetcode.com/problems/rotting-oranges/'),
-  P('word-ladder', 'Word Ladder', 'Graphs', 'Hard', 'high', 'https://leetcode.com/problems/word-ladder/'),
-  P('clone-graph', 'Clone Graph', 'Graphs', 'Medium', 'medium', 'https://leetcode.com/problems/clone-graph/'),
-  P('word-search', 'Word Search', 'Graphs', 'Medium', 'medium', 'https://leetcode.com/problems/word-search/'),
-  P('surrounded-regions', 'Surrounded Regions', 'Graphs', 'Medium', 'low', 'https://leetcode.com/problems/surrounded-regions/'),
-  P('open-the-lock', 'Open the Lock', 'Graphs', 'Medium', 'low', 'https://leetcode.com/problems/open-the-lock/'),
-  P('network-connected', 'Number of Operations to Make Network Connected', 'Graphs', 'Medium', 'low', 'https://leetcode.com/problems/number-of-operations-to-make-network-connected/'),
-
-  // Heaps / Priority Queue
-  P('k-closest-points', 'K Closest Points to Origin', 'Heaps', 'Medium', 'high', 'https://leetcode.com/problems/k-closest-points-to-origin/'),
-  P('reorganize-string', 'Reorganize String', 'Heaps', 'Medium', 'high', 'https://leetcode.com/problems/reorganize-string/'),
-  P('merge-k-lists', 'Merge k Sorted Lists', 'Heaps', 'Hard', 'high', 'https://leetcode.com/problems/merge-k-sorted-lists/'),
-  P('kth-largest', 'Kth Largest Element in an Array', 'Heaps', 'Medium', 'medium', 'https://leetcode.com/problems/kth-largest-element-in-an-array/'),
-  P('top-k-frequent', 'Top K Frequent Elements', 'Heaps', 'Medium', 'medium', 'https://leetcode.com/problems/top-k-frequent-elements/'),
-
-  // Intervals
-  P('merge-intervals', 'Merge Intervals', 'Intervals', 'Medium', 'high', 'https://leetcode.com/problems/merge-intervals/'),
-  P('meeting-rooms-ii', 'Meeting Rooms II', 'Intervals', 'Medium', 'high', 'https://leetcode.com/problems/meeting-rooms-ii/'),
-  P('insert-interval', 'Insert Interval', 'Intervals', 'Medium', 'medium', 'https://leetcode.com/problems/insert-interval/'),
-
-  // Dynamic Programming
-  P('coin-change', 'Coin Change', 'Dynamic Programming', 'Medium', 'medium', 'https://leetcode.com/problems/coin-change/'),
-  P('word-break', 'Word Break', 'Dynamic Programming', 'Medium', 'medium', 'https://leetcode.com/problems/word-break/'),
-  P('lis', 'Longest Increasing Subsequence', 'Dynamic Programming', 'Medium', 'medium', 'https://leetcode.com/problems/longest-increasing-subsequence/'),
-  P('unique-paths', 'Unique Paths', 'Dynamic Programming', 'Medium', 'medium', 'https://leetcode.com/problems/unique-paths/'),
-  P('max-product-subarray', 'Maximum Product Subarray', 'Dynamic Programming', 'Medium', 'medium', 'https://leetcode.com/problems/maximum-product-subarray/'),
-  P('decode-ways', 'Decode Ways', 'Dynamic Programming', 'Medium', 'medium', 'https://leetcode.com/problems/decode-ways/'),
-  P('edit-distance', 'Edit Distance', 'Dynamic Programming', 'Medium', 'low', 'https://leetcode.com/problems/edit-distance/'),
-  P('climbing-stairs', 'Climbing Stairs', 'Dynamic Programming', 'Easy', 'low', 'https://leetcode.com/problems/climbing-stairs/'),
-
-  // Design
-  P('lru-cache', 'LRU Cache', 'Design', 'Medium', 'high', 'https://leetcode.com/problems/lru-cache/'),
-  P('design-hashmap', 'Design HashMap', 'Design', 'Easy', 'medium', 'https://leetcode.com/problems/design-hashmap/'),
-
-  // Amazon-signature / recently trending additions
-  P('reorder-log-files', 'Reorder Data in Log Files', 'Strings', 'Easy', 'high', 'https://leetcode.com/problems/reorder-data-in-log-files/'),
-  P('most-common-word', 'Most Common Word', 'Strings', 'Easy', 'high', 'https://leetcode.com/problems/most-common-word/'),
-  P('partition-labels', 'Partition Labels', 'Strings', 'Medium', 'high', 'https://leetcode.com/problems/partition-labels/'),
-  P('majority-element', 'Majority Element', 'Arrays & Hashing', 'Easy', 'medium', 'https://leetcode.com/problems/majority-element/'),
-  P('analyze-website', 'Analyze User Website Visit Pattern', 'Arrays & Hashing', 'Medium', 'medium', 'https://leetcode.com/problems/analyze-user-website-visit-pattern/'),
-  P('search-2d-ii', 'Search a 2D Matrix II', 'Binary Search', 'Medium', 'medium', 'https://leetcode.com/problems/search-a-2d-matrix-ii/'),
-  P('subtree-another', 'Subtree of Another Tree', 'Trees', 'Easy', 'high', 'https://leetcode.com/problems/subtree-of-another-tree/'),
-  P('right-side-view', 'Binary Tree Right Side View', 'Trees', 'Medium', 'medium', 'https://leetcode.com/problems/binary-tree-right-side-view/'),
-  P('all-nodes-distance-k', 'All Nodes Distance K in Binary Tree', 'Trees', 'Medium', 'medium', 'https://leetcode.com/problems/all-nodes-distance-k-in-binary-tree/'),
-  P('search-suggestions', 'Search Suggestions System', 'Tries', 'Medium', 'high', 'https://leetcode.com/problems/search-suggestions-system/'),
-  P('concatenated-words', 'Concatenated Words', 'Tries', 'Hard', 'medium', 'https://leetcode.com/problems/concatenated-words/'),
-  P('critical-connections', 'Critical Connections in a Network', 'Graphs', 'Hard', 'high', 'https://leetcode.com/problems/critical-connections-in-a-network/'),
-  P('course-schedule-ii', 'Course Schedule II', 'Graphs', 'Medium', 'high', 'https://leetcode.com/problems/course-schedule-ii/'),
-  P('alien-dictionary', 'Alien Dictionary', 'Graphs', 'Hard', 'medium', 'https://leetcode.com/problems/alien-dictionary/'),
-  P('top-k-frequent-words', 'Top K Frequent Words', 'Heaps', 'Medium', 'high', 'https://leetcode.com/problems/top-k-frequent-words/'),
-  P('find-median-stream', 'Find Median from Data Stream', 'Heaps', 'Hard', 'medium', 'https://leetcode.com/problems/find-median-from-data-stream/'),
-  P('connect-sticks', 'Minimum Cost to Connect Sticks', 'Heaps', 'Medium', 'medium', 'https://leetcode.com/problems/minimum-cost-to-connect-sticks/'),
-  P('max-ice-cream', 'Maximum Ice Cream Bars', 'Heaps', 'Medium', 'medium', 'https://leetcode.com/problems/maximum-ice-cream-bars/'),
-  P('basic-calculator-ii', 'Basic Calculator II', 'Stack', 'Medium', 'medium', 'https://leetcode.com/problems/basic-calculator-ii/'),
-  P('jump-game', 'Jump Game', 'Dynamic Programming', 'Medium', 'medium', 'https://leetcode.com/problems/jump-game/'),
-  P('lfu-cache', 'LFU Cache', 'Design', 'Hard', 'medium', 'https://leetcode.com/problems/lfu-cache/'),
-  P('insert-delete-getrandom', 'Insert Delete GetRandom O(1)', 'Design', 'Medium', 'medium', 'https://leetcode.com/problems/insert-delete-getrandom-o1/'),
-
-  // Object-Oriented / Low-Level Design (talk through classes + APIs; no LeetCode link)
-  P('ood-parking-lot', 'Design a Parking Lot', 'Object-Oriented Design', 'Medium', 'high', ''),
-  P('ood-vending-machine', 'Design a Vending Machine (state machine)', 'Object-Oriented Design', 'Medium', 'high', ''),
-  P('ood-elevator', 'Design an Elevator System', 'Object-Oriented Design', 'Medium', 'medium', ''),
-  P('ood-atm', 'Design an ATM', 'Object-Oriented Design', 'Medium', 'medium', ''),
-  P('ood-cache', 'Design an LRU / LFU Cache (implement)', 'Object-Oriented Design', 'Medium', 'medium', ''),
-  P('ood-deck-cards', 'Design a Deck of Cards', 'Object-Oriented Design', 'Medium', 'medium', ''),
-  P('ood-rate-limiter', 'Design a Rate Limiter (token bucket)', 'Object-Oriented Design', 'Medium', 'medium', ''),
-  P('ood-amazon-locker', 'Design an Amazon Locker', 'Object-Oriented Design', 'Medium', 'medium', ''),
-  P('ood-library', 'Design a Library System', 'Object-Oriented Design', 'Medium', 'low', ''),
-  P('ood-tic-tac-toe', 'Design Tic-Tac-Toe (OOD)', 'Object-Oriented Design', 'Medium', 'low', ''),
+  ...Object.entries(NEET).flatMap(([topic, list]) => list.map(([t, d]) => mk(t, topic, d, true))),
+  ...AMAZON_EXTRA.map(([t, topic, d]) => mk(t, topic, d, false)),
+  // Object-oriented / low-level design (talk through classes + APIs; no LeetCode link)
+  ood('ood-parking-lot', 'Design a Parking Lot', 'Medium', 'high'),
+  ood('ood-vending-machine', 'Design a Vending Machine (state machine)', 'Medium', 'high'),
+  ood('ood-elevator', 'Design an Elevator System', 'Medium', 'medium'),
+  ood('ood-atm', 'Design an ATM', 'Medium', 'medium'),
+  ood('ood-cache', 'Design an LRU / LFU Cache (implement)', 'Medium', 'medium'),
+  ood('ood-deck-cards', 'Design a Deck of Cards', 'Medium', 'medium'),
+  ood('ood-rate-limiter', 'Design a Rate Limiter (token bucket)', 'Medium', 'medium'),
+  ood('ood-amazon-locker', 'Design an Amazon Locker', 'Medium', 'medium'),
+  ood('ood-library', 'Design a Library System', 'Medium', 'low'),
+  ood('ood-tic-tac-toe', 'Design Tic-Tac-Toe (OOD)', 'Medium', 'low'),
 ]
 
-// Official Amazon "Software Development Topics" study areas (from the invite).
+// Topic reference list (all DSA topics + design areas).
 export const seedCodingTopics = [
   'Arrays & Hashing',
   'Strings',
@@ -210,11 +259,15 @@ export const seedCodingTopics = [
   'Linked List',
   'Trees',
   'Tries',
-  'Graphs',
+  'Backtracking',
   'Heaps',
+  'Graphs',
   'Intervals',
   'Dynamic Programming',
+  'Greedy',
   'Design',
+  'Math & Geometry',
+  'Bit Manipulation',
   'Object-Oriented Design',
 ]
 
@@ -348,7 +401,7 @@ export const seedResources = [
   { id: 'r-lp', category: 'Official', title: 'Amazon Leadership Principles', url: 'https://www.amazon.jobs/content/en/our-workplace/leadership-principles', note: 'The 16 LPs — memorize the themes, not the words.' },
   { id: 'r-prep', category: 'Official', title: 'Interviewing at Amazon', url: 'https://www.amazon.jobs/content/en/how-we-hire/interviewing-at-amazon', note: 'Official prep guide.' },
   { id: 'r-star', category: 'Official', title: 'STAR Method (Amazon)', url: 'https://www.amazon.jobs/content/en/how-we-hire/interview-loop', note: 'Situation, Task, Action, Result.' },
-  { id: 'r-neetcode', category: 'Coding', title: 'NeetCode 150', url: 'https://neetcode.io/practice', note: 'Curated pattern-based problem set.' },
+  { id: 'r-neetcode', category: 'Coding', title: 'NeetCode 150', url: 'https://neetcode.io/practice', note: 'The pattern-based set that backs your Coding tab.' },
   { id: 'r-blind75', category: 'Coding', title: 'Blind 75', url: 'https://www.teamblind.com/post/New-Year-Gift---Curated-List-of-Top-75-LeetCode-Questions-to-Save-Your-Time-OaM1orEU', note: 'Classic 75-problem list.' },
   { id: 'r-lc-amazon', category: 'Coding', title: 'LeetCode — Amazon tagged', url: 'https://leetcode.com/company/amazon/', note: 'Recently reported Amazon questions (Premium).' },
 ]
@@ -357,7 +410,7 @@ export const seedTodos = [
   { id: 't-confirm', text: 'Reply to Erika confirming receipt + availability', due: '2026-07-18', done: true, priority: 'high' },
   { id: 't-livecode', text: 'Save the LiveCode link once it arrives', due: '', done: false, priority: 'high' },
   // Phase 1 — the 7 dedicated DSA days
-  { id: 't-dsa', text: 'DSA sprint: 7 focused days, high-frequency/repeated problems first', due: '', done: false, priority: 'high' },
+  { id: 't-dsa', text: 'DSA sprint: 7 focused days, trees & graphs first, high-frequency problems prioritized', due: '', done: false, priority: 'high' },
   // Phase 2 — the final ~4 days (everything else)
   { id: 't-stories', text: 'Build a bank of 8–10 STAR stories, each mapped to 2–3 Leadership Principles', due: '', done: false, priority: 'high' },
   { id: 't-resume', text: 'Prep dive-deep answers for every résumé project (metrics, tradeoffs, “why X not Y”)', due: '', done: false, priority: 'high' },

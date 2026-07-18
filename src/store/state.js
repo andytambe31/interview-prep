@@ -22,7 +22,7 @@ const USER_FIELDS = {
 // - Seed items get their reference fields refreshed from seed.
 // - User progress fields are preserved from the stored copy.
 // - User-created items (ids not in seed) are kept and appended.
-function mergeList(storedList = [], seedList = [], userFields = []) {
+function mergeList(storedList = [], seedList = [], userFields = [], keepUserCreated = true) {
   const storedById = new Map(storedList.map((item) => [item.id, item]))
   const seedIds = new Set(seedList.map((item) => item.id))
 
@@ -36,6 +36,9 @@ function mergeList(storedList = [], seedList = [], userFields = []) {
     return { ...seedItem, ...preserved }
   })
 
+  // Problems have no "add your own" UI, so orphaned old-id entries (e.g. after a
+  // content revamp) should be dropped rather than kept as duplicates.
+  if (!keepUserCreated) return merged
   const userCreated = storedList.filter((item) => !seedIds.has(item.id))
   return [...merged, ...userCreated]
 }
@@ -83,7 +86,8 @@ export function mergeSeed(state) {
     ...state,
     coding: {
       ...state.coding,
-      problems: mergeList(state.coding?.problems, seedProblems, USER_FIELDS.problem),
+      // seed-only (no keepUserCreated) so old-id problems don't linger as dupes
+      problems: mergeList(state.coding?.problems, seedProblems, USER_FIELDS.problem, false),
     },
     lps: mergeList(state.lps, seedLPs, USER_FIELDS.lp),
     resources: mergeList(state.resources, seedResources, []),

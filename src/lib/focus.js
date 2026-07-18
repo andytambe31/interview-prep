@@ -41,15 +41,37 @@ export function topicProgress(problems) {
 
 export const LLD_TOPIC = 'Object-Oriented Design'
 
-// The single DSA topic to practice next: the earliest topic in the study order
-// that still has unsolved high-frequency problems (fall back to any unsolved).
-// LLD is excluded — it's a separate section handled in the final push.
+// Personalized DSA order: Raveena is strong on arrays/prefix-sums and the
+// common array questions, and weakest on the harder round-2 material (trees,
+// graphs). So the sprint front-loads trees/graphs and the other harder
+// patterns, and treats the array family as a quick refresh at the end.
+export const DSA_SPRINT_ORDER = [
+  'Trees',
+  'Graphs',
+  'Heaps',
+  'Tries',
+  'Dynamic Programming',
+  'Design',
+  'Binary Search',
+  'Intervals',
+  'Linked List',
+  'Stack',
+  'Sliding Window',
+  'Two Pointers',
+  'Strings',
+  'Arrays & Hashing',
+]
+
+// The single DSA topic to practice next: the highest-priority topic (weak/hard
+// first) that still has unsolved high-frequency problems (fall back to any
+// unsolved). LLD is excluded — it's a separate section handled in the final push.
 export function nextCodingTopic(problems) {
-  const prog = topicProgress(problems).filter((m) => m.topic !== LLD_TOPIC)
-  const byHigh = prog.find((m) => m.highSolved < m.highTotal)
-  if (byHigh) return byHigh.topic
-  const byAny = prog.find((m) => m.solved < m.total)
-  return byAny ? byAny.topic : null
+  const byTopic = Object.fromEntries(topicProgress(problems).map((m) => [m.topic, m]))
+  const order = DSA_SPRINT_ORDER.filter((t) => byTopic[t])
+  const byHigh = order.find((t) => byTopic[t].highSolved < byTopic[t].highTotal)
+  if (byHigh) return byHigh
+  const byAny = order.find((t) => byTopic[t].solved < byTopic[t].total)
+  return byAny || null
 }
 
 export function unsolvedInTopic(problems, topic, freqFirst = true) {

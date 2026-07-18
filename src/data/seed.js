@@ -441,7 +441,7 @@ export const mostAskedBehavioral = [
 // Revision flashcards. deck groups related cards; front = prompt, back = the
 // detail to recall. Seeded from dictated notes; you can add your own too.
 // ---------------------------------------------------------------------------
-const RC = (id, deck, front, back) => ({ id, deck, front, back })
+const RC = (id, deck, front, back, diagram) => ({ id, deck, front, back, ...(diagram ? { diagram } : {}) })
 
 export const seedRevisionCards = [
   RC('rc-info', 'Abstract Data Structures',
@@ -504,6 +504,65 @@ export const seedRevisionCards = [
   RC('rc-heap', 'Abstract Data Structures',
     'Heap — what is the information?',
     'A weak ordering invariant that exposes the extreme element (smallest / largest / most-frequent). The information is the extreme, not a full sort.'),
+
+  // Relational (4th category)
+  RC('rc-relational', 'Abstract Data Structures',
+    'Relational category — what is the information?',
+    'Connections / relationships are information — how things link to each other. Members: graph, trie, DAG.\n\n• Graph — arbitrary relationships (nodes + edges); can have cycles.\n• Trie — prefix relationships over strings (each edge is a character).\n• DAG — directed, acyclic; encodes dependencies/ordering (e.g., prerequisites), enabling topological sort.'),
+
+  // ---- Trees & Traversals deck ----
+  RC('rc-bt-node', 'Trees & Traversals',
+    'Binary tree — what is a node, and the core rules?',
+    'A node holds data + pointers to its children (left, right). The entry point is always the root, which points to its children.\n\nRules: a node cannot have more than one parent; each node has at most two children (left child, right child).'),
+  RC('rc-subtree', 'Trees & Traversals',
+    'What is a subtree?',
+    'Any node together with all of its descendants forms a subtree. A tree is made of smaller subtrees — which is why recursion fits so naturally.'),
+  RC('rc-tree-examples', 'Trees & Traversals',
+    'Real-life examples of tree structures?',
+    '• File systems on your desktop (folders inside folders).\n• A Reddit comment thread (replies nesting under comments).\n• A company org chart (the reporting hierarchy).'),
+  RC('rc-root', 'Trees & Traversals',
+    'What is the root, and how is it used?',
+    'The root is the top node and is always given as the input/entry point to the tree — every traversal starts there.'),
+  RC('rc-depth', 'Trees & Traversals',
+    'How is a node’s depth defined?',
+    'Depth = how far a node is from the root.\n\nroot depth = 0\nchild depth = parent’s depth + 1'),
+  RC('rc-treenode-code', 'Trees & Traversals',
+    'How do you define a tree node in code?',
+    'A value plus two child pointers, defaulting to null. If a node has neither left nor right child, it’s a leaf node.',
+    'class TreeNode:\n    def __init__(self, value):\n        self.value = value\n        self.left = None   # left child pointer\n        self.right = None  # right child pointer'),
+  RC('rc-leaf', 'Trees & Traversals',
+    'What is a leaf node?',
+    'A node with no children — both its left and right pointers are null. Leaves are where DFS “bottoms out” and starts backtracking.'),
+  RC('rc-traversal-types', 'Trees & Traversals',
+    'What are the two families of tree traversal?',
+    'DFS (depth-first) and BFS (breadth-first).\n\n• DFS: go in one direction until you hit a leaf, then backtrack. Implemented with recursion or an explicit stack. Sub-types: preorder, inorder, postorder.\n• BFS: visit level by level, using a queue.'),
+  RC('rc-dfs-impl', 'Trees & Traversals',
+    'How is DFS implemented, and how does it “go back up”?',
+    'DFS can be done with recursion or an explicit stack. Going downward is easy — you follow the left/right pointers. But the tree has no parent pointer, so going back up relies on the call stack: it remembers where each call came from and resumes there when a call returns.'),
+  RC('rc-callstack', 'Trees & Traversals',
+    'How does the recursion call stack enable backtracking in DFS? (interview answer)',
+    'A binary tree only has downward pointers (left/right) — there is no parent pointer. So to move back up, DFS leans on the call stack.\n\nEach recursive call is pushed as a frame that stores where it was — the current node and the point to resume at. When a call hits a base case (null or a leaf), it returns and its frame is popped; execution continues in the parent call right after the line that made the child call. That automatic pop-and-resume IS the backtracking — you never store parent pointers yourself.',
+    'dfs(1)\n └─ dfs(2)\n     └─ dfs(4)\n         └─ dfs(null) → return, pop\n        ↩ back in dfs(4): go right\n         └─ dfs(null) → return, pop\n        ↩ back in dfs(2): go right → dfs(5) ...\n\nCall stack (top = deepest):\n  ┌───────────┐\n  │  dfs(4)   │  ← returns first\n  │  dfs(2)   │\n  │  dfs(1)   │  ← each frame kept its resume point\n  └───────────┘'),
+  RC('rc-bfs', 'Trees & Traversals',
+    'How does BFS (level-order) traversal work?',
+    'Use a queue. Push the root; then repeatedly pop the whole current level (snapshot the queue size first) and push each node’s children. This visits the tree level by level, top to bottom.'),
+
+  // Traversal orders — same tree used across all three
+  RC('rc-preorder', 'Trees & Traversals',
+    'Pre-order DFS — what order, and output for the sample tree?',
+    'Pre-order = current node BEFORE its children: node → left → right.\n\nFor the tree below: 1, 2, 4, 5, 3.  (Root printed first.)',
+    '        1\n       / \\\n      2   3\n     / \\\n    4   5\n\n preorder(node):\n   visit(node)      # do work here\n   preorder(left)\n   preorder(right)'),
+  RC('rc-inorder', 'Trees & Traversals',
+    'In-order DFS — what order, and output for the sample tree?',
+    'In-order = left → current node → right (node in the MIDDLE).\n\nFor the tree below: 4, 2, 5, 1, 3.  (For a BST, in-order yields sorted order.)',
+    '        1\n       / \\\n      2   3\n     / \\\n    4   5\n\n inorder(node):\n   inorder(left)\n   visit(node)      # do work here\n   inorder(right)'),
+  RC('rc-postorder', 'Trees & Traversals',
+    'Post-order DFS — what order, and output for the sample tree?',
+    'Post-order = left → right → current node (node LAST).\n\nFor the tree below: 4, 5, 2, 3, 1.  (Great when a node needs its children’s results first — e.g. height, deleting a tree.)',
+    '        1\n       / \\\n      2   3\n     / \\\n    4   5\n\n postorder(node):\n   postorder(left)\n   postorder(right)\n   visit(node)      # do work here'),
+  RC('rc-traversal-mnemonic', 'Trees & Traversals',
+    'Easy way to remember pre / in / post order?',
+    'It’s about where the CURRENT node sits relative to its children:\n\n• Node BEFORE children → preorder (root first)\n• Node BETWEEN children → inorder (root in the middle)\n• Node AFTER children → postorder (root last)'),
 ]
 
 // ---------------------------------------------------------------------------

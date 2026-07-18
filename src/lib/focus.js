@@ -46,20 +46,24 @@ export const LLD_TOPIC = 'Object-Oriented Design'
 // graphs). So the sprint front-loads trees/graphs and the other harder
 // patterns, and treats the array family as a quick refresh at the end.
 export const DSA_SPRINT_ORDER = [
-  'Trees',
-  'Graphs',
+  'Trees', // weakest — front-loaded (with Andy)
+  'Graphs', // weakest — front-loaded (with Andy)
+  'Dynamic Programming', // popular — pushed up
   'Heaps',
-  'Tries',
-  'Dynamic Programming',
-  'Design',
-  'Binary Search',
+  'Binary Search', // important — kept high
   'Intervals',
+  'Backtracking',
+  'Design',
   'Linked List',
   'Stack',
+  'Greedy',
   'Sliding Window',
   'Two Pointers',
+  'Tries', // less common — pushed down
   'Strings',
-  'Arrays & Hashing',
+  'Arrays & Hashing', // already strong — quick refresh
+  'Math & Geometry',
+  'Bit Manipulation',
 ]
 
 // The single DSA topic to practice next: the highest-priority topic (weak/hard

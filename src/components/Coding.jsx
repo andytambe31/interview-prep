@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { useStore } from '../store/StoreContext.jsx'
 import { PageHeader, ProgressBar, ConfidenceDots, DifficultyBadge, StatusBadge } from './common.jsx'
 import { highYield } from '../data/insights.js'
+import { patternsFor } from '../data/patterns.js'
 import { DSA_SPRINT_ORDER, LLD_TOPIC } from '../lib/focus.js'
 
 const STATUS_CYCLE = { todo: 'attempted', attempted: 'solved', solved: 'todo' }
@@ -18,6 +19,7 @@ export default function Coding() {
   const [query, setQuery] = useState('')
   const [difficulty, setDifficulty] = useState('All')
   const [freqOnly, setFreqOnly] = useState(false)
+  const [neetOnly, setNeetOnly] = useState(false)
   const [hideSolved, setHideSolved] = useState(false)
   const [open, setOpen] = useState(() => (focusTopic ? { [focusTopic]: true } : {}))
   const [expanded, setExpanded] = useState(null)
@@ -37,6 +39,7 @@ export default function Coding() {
   const matches = (p) => {
     if (difficulty !== 'All' && p.difficulty !== difficulty) return false
     if (freqOnly && p.freq !== 'high') return false
+    if (neetOnly && !p.neet) return false
     if (hideSolved && p.status === 'solved') return false
     if (query && !p.title.toLowerCase().includes(query.toLowerCase())) return false
     return true
@@ -51,17 +54,17 @@ export default function Coding() {
         return { topic, all, shown, done }
       })
       .filter((g) => g.all.length > 0)
-  }, [problems, query, difficulty, freqOnly, hideSolved])
+  }, [problems, query, difficulty, freqOnly, neetOnly, hideSolved])
 
   const cycleStatus = (p) => dispatch({ type: 'UPDATE_PROBLEM', id: p.id, patch: { status: STATUS_CYCLE[p.status] } })
-  const anyFilter = query || difficulty !== 'All' || freqOnly || hideSolved
+  const anyFilter = query || difficulty !== 'All' || freqOnly || neetOnly || hideSolved
 
   return (
     <div>
       <PageHeader
         kicker="Coding"
         title="Work the patterns, not just the problems"
-        intro="A high-frequency Amazon SDE-I set grouped by pattern. Aim to recognize the shape of each problem — the interview lives in Medium territory. Tap a status chip to move a problem To do → Attempted → Solved."
+        intro="The NeetCode 150 (pattern-based) with an Amazon frequency overlay, grouped by pattern and ordered to your weak spots first. Click “Learn” on any problem to see the pattern behind it — how to recognize it and the reusable template. Tap a status chip to move a problem To do → Attempted → Solved."
       />
 
       {/* Must-do */}
@@ -104,6 +107,10 @@ export default function Coding() {
         <label className="pill cursor-pointer border border-line bg-surface text-muted">
           <input type="checkbox" className="mr-1" checked={freqOnly} onChange={(e) => setFreqOnly(e.target.checked)} />
           High-frequency
+        </label>
+        <label className="pill cursor-pointer border border-line bg-surface text-muted">
+          <input type="checkbox" className="mr-1" checked={neetOnly} onChange={(e) => setNeetOnly(e.target.checked)} />
+          NeetCode 150
         </label>
         <label className="pill cursor-pointer border border-line bg-surface text-muted">
           <input type="checkbox" className="mr-1" checked={hideSolved} onChange={(e) => setHideSolved(e.target.checked)} />
@@ -171,17 +178,23 @@ export default function Coding() {
                         <DifficultyBadge level={p.difficulty} />
                         <ConfidenceDots value={p.confidence} onChange={(v) => dispatch({ type: 'UPDATE_PROBLEM', id: p.id, patch: { confidence: v } })} />
                         <button className="btn-quiet px-2 text-xs" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
-                          {expanded === p.id ? 'Hide' : 'Notes'}
+                          {expanded === p.id ? 'Hide' : 'Learn'}
                         </button>
                       </div>
                       {expanded === p.id && (
-                        <div className="px-5 pb-4">
-                          <textarea
-                            className="input min-h-[80px]"
-                            placeholder="Approach, gotchas, time/space complexity, the pattern to remember…"
-                            value={p.notes}
-                            onChange={(e) => dispatch({ type: 'UPDATE_PROBLEM', id: p.id, patch: { notes: e.target.value } })}
-                          />
+                        <div className="space-y-4 px-5 pb-5">
+                          {patternsFor(p).map((pat) => (
+                            <PatternGuide key={pat.name} pat={pat} />
+                          ))}
+                          <div>
+                            <div className="kicker mb-1">Your notes</div>
+                            <textarea
+                              className="input min-h-[70px]"
+                              placeholder="Your own take, gotchas, the trick to remember…"
+                              value={p.notes}
+                              onChange={(e) => dispatch({ type: 'UPDATE_PROBLEM', id: p.id, patch: { notes: e.target.value } })}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -191,6 +204,44 @@ export default function Coding() {
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+function PatternGuide({ pat }) {
+  const Row = ({ label, children }) => (
+    <div>
+      <div className="kicker mb-1">{label}</div>
+      <div className="text-[15px] leading-relaxed text-ink/90">{children}</div>
+    </div>
+  )
+  return (
+    <div className="rounded-xl border border-clay-200 bg-clay-50/40 p-4">
+      <div className="mb-3 font-serif text-lg text-clay-700">Pattern · {pat.name}</div>
+      <div className="space-y-3">
+        <Row label="How to recognize it">{pat.recognize}</Row>
+        <Row label="The core idea">{pat.idea}</Row>
+        <Row label="The template">
+          <ol className="list-decimal space-y-1 pl-5">
+            {pat.template.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ol>
+        </Row>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Row label="Complexity">{pat.complexity}</Row>
+          <Row label="Common pitfalls">
+            <ul className="list-disc space-y-1 pl-5">
+              {pat.pitfalls.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </Row>
+        </div>
+        {pat.examples?.length > 0 && (
+          <div className="text-xs text-faint">Also uses this pattern: {pat.examples.join(' · ')}</div>
+        )}
       </div>
     </div>
   )

@@ -27,6 +27,11 @@ export default function Today({ onNavigate }) {
     onNavigate(step.cta.route)
   }
 
+  const goPlan = () => {
+    onNavigate('loop')
+    setTimeout(() => document.getElementById('plan')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
+  }
+
   const greeting =
     days === null
       ? `Let’s get you ready, ${firstName}.`
@@ -52,6 +57,14 @@ export default function Today({ onNavigate }) {
             {state.schedule.chosen.date ? `confirmed for ${formatDate(date)}` : `first available ${formatDate(date)}`}
           </p>
         )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button className="btn-soft" onClick={goPlan}>
+            📋 View study plan
+          </button>
+          <button className="btn-outline" onClick={() => onNavigate('coding')}>
+            Start practicing →
+          </button>
+        </div>
       </div>
 
       {/* Focus now */}

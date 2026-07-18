@@ -356,9 +356,13 @@ export const seedResources = [
 export const seedTodos = [
   { id: 't-confirm', text: 'Reply to Erika confirming receipt + availability', due: '2026-07-18', done: true, priority: 'high' },
   { id: 't-livecode', text: 'Save the LiveCode link once it arrives', due: '', done: false, priority: 'high' },
-  { id: 't-stories', text: 'Draft 6–8 STAR stories covering all high-emphasis LPs', due: '2026-07-24', done: false, priority: 'high' },
-  { id: 't-coding', text: 'Finish high-frequency coding set (arrays, graphs, trees, DP)', due: '2026-07-28', done: false, priority: 'high' },
-  { id: 't-mock', text: 'Do at least 2 timed mock interviews (coding + behavioral)', due: '2026-07-27', done: false, priority: 'medium' },
-  { id: 't-questions', text: 'Prepare 3–4 thoughtful questions to ask interviewers', due: '2026-07-26', done: false, priority: 'medium' },
+  // Phase 1 — the 7 dedicated DSA days
+  { id: 't-dsa', text: 'DSA sprint: 7 focused days, high-frequency/repeated problems first', due: '', done: false, priority: 'high' },
+  // Phase 2 — the final ~4 days (everything else)
+  { id: 't-stories', text: 'Build a bank of 8–10 STAR stories, each mapped to 2–3 Leadership Principles', due: '', done: false, priority: 'high' },
+  { id: 't-resume', text: 'Prep dive-deep answers for every résumé project (metrics, tradeoffs, “why X not Y”)', due: '', done: false, priority: 'high' },
+  { id: 't-lld', text: 'Practice core LLD/OOD: parking lot, vending machine, ATM, LRU/LFU', due: '', done: false, priority: 'medium' },
+  { id: 't-mock', text: 'Do 1–2 full timed mock loops (coding + behavioral)', due: '', done: false, priority: 'medium' },
+  { id: 't-questions', text: 'Prepare 3–4 thoughtful questions to ask interviewers', due: '', done: false, priority: 'medium' },
   { id: 't-logistics', text: 'Confirm travel/hotel after Save-the-Date email', due: '', done: false, priority: 'medium' },
 ]

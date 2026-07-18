@@ -87,5 +87,8 @@ export function mergeSeed(state) {
     },
     lps: mergeList(state.lps, seedLPs, USER_FIELDS.lp),
     resources: mergeList(state.resources, seedResources, []),
+    // Refresh the seeded to-do list (text/priority) while preserving whether
+    // you've checked each one off, plus any to-dos you added yourself.
+    todos: mergeList(state.todos, seedTodos, ['done']),
   }
 }

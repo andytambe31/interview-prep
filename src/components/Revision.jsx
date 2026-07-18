@@ -106,9 +106,18 @@ export default function Revision() {
                 className="flex min-h-[240px] w-full flex-col items-center justify-center rounded-2xl border border-line bg-surface p-8 text-center shadow-soft transition hover:border-clay-300"
               >
                 <div className="kicker mb-4">{flipped ? 'Answer' : 'Prompt'} · tap to flip</div>
-                <div className={`max-w-prose ${flipped ? 'text-[17px] leading-relaxed text-ink/90' : 'font-serif text-2xl text-ink'}`}>
-                  {flipped ? card.back : card.front}
-                </div>
+                {flipped ? (
+                  <div className="w-full max-w-prose text-left">
+                    <div className="whitespace-pre-wrap text-[16px] leading-relaxed text-ink/90">{card.back}</div>
+                    {card.diagram && (
+                      <pre className="mt-4 overflow-x-auto rounded-lg bg-paper p-3 text-left font-mono text-[12.5px] leading-snug text-ink/80">
+                        {card.diagram}
+                      </pre>
+                    )}
+                  </div>
+                ) : (
+                  <div className="max-w-prose font-serif text-2xl text-ink">{card.front}</div>
+                )}
               </button>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -214,6 +223,12 @@ export default function Revision() {
             <textarea className="input mb-3 min-h-[70px]" value={editing.front} onChange={(e) => setEditing({ ...editing, front: e.target.value })} />
             <label className="label">Back (answer)</label>
             <textarea className="input mb-4 min-h-[100px]" value={editing.back} onChange={(e) => setEditing({ ...editing, back: e.target.value })} />
+            <label className="label">Diagram / code (optional, monospace)</label>
+            <textarea
+              className="input mb-4 min-h-[70px] font-mono text-xs"
+              value={editing.diagram || ''}
+              onChange={(e) => setEditing({ ...editing, diagram: e.target.value })}
+            />
             <button className="btn-primary" onClick={save}>
               Save card
             </button>

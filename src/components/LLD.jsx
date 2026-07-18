@@ -87,6 +87,7 @@ export default function LLD() {
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="font-serif text-lg">{prob.title}</span>
                     {prob.freq === 'high' && <span className="pill bg-clay-50 text-clay-700">high freq</span>}
+                    {prob.reported && <span className="pill bg-sage-100 text-sage-600">peer-reported</span>}
                   </span>
                   <span className="mt-1 flex flex-wrap gap-1.5">
                     {prob.patterns.map((pat) => (
@@ -103,6 +104,12 @@ export default function LLD() {
 
               {isOpen && (
                 <div className="space-y-5 border-t border-line px-5 py-5">
+                  {prob.keyInsight && (
+                    <p className="rounded-xl bg-clay-50 px-4 py-3 text-[15px] text-clay-700">
+                      <span className="font-semibold">Key insight — </span>
+                      {prob.keyInsight}
+                    </p>
+                  )}
                   <Detail title="Clarify / requirements">
                     <List items={prob.requirements} />
                   </Detail>

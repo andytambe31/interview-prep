@@ -55,7 +55,9 @@ export function buildInitialState() {
     stories: [],
     resources: seedResources.map((r) => ({ ...r })),
     todos: seedTodos.map((t) => ({ ...t })),
-    ui: { theme: 'system' },
+    // Lightweight "have you read/done this" flags for the guided steps.
+    checklist: {},
+    ui: { codingTopic: null },
   }
 }
 

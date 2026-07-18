@@ -180,10 +180,13 @@ export function buildPlan(state) {
       : null
 
   // --- Order by phase ---
+  // DSA sprint = 7 dedicated days of coding only (plus one-time orientation and
+  // the trivial LiveCode-link capture). Behavioral, résumé, and LLD are held
+  // until the final push so the sprint stays single-focus.
   const order =
     phase === 'final'
       ? [readStep, storyStep, resumeStep, lldStep, codingStep, livecodeStep]
-      : [readStep, codingStep, storyStep, resumeStep, lldStep, livecodeStep]
+      : [readStep, codingStep, livecodeStep]
 
   return order.filter(Boolean)
 }

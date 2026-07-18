@@ -187,7 +187,7 @@ export const sources = [
 // The plan is allocated deliberately: ~7 days all-in on DSA (repeated/high-
 // frequency questions first), then the last 3–4 days for everything else.
 export const studyPlanIntro =
-  'Spend the first ~7 days entirely on data structures & algorithms — repeated/high-frequency questions first — then use the final 3–4 days for behavioral, LLD, résumé, and mocks. Coding is the primary gate, so it gets the bulk of the runway.'
+  'Seven dedicated days of data structures & algorithms — nothing else in parallel, repeated/high-frequency questions first — then the final ~4 days for everything else: the 8–10 STAR story bank, LLD/OOD, résumé dive-deep, and mock loops. Coding is the primary gate, so it gets the uninterrupted runway; the app holds the other work back until the sprint is done.'
 
 export const studyPlan = [
   { phase: 'DSA sprint · ~7 days', day: 'Day 1', theme: 'Arrays, Hashing & Strings', items: 'Two Sum · Best Time to Buy/Sell · Product Except Self · Group Anagrams · Reorder Data in Log Files · Most Common Word · Partition Labels.' },

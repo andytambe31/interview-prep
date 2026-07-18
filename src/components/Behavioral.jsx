@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useStore } from '../store/StoreContext.jsx'
-import { PageHeader, EmphasisBadge, ConfidenceDots, Empty } from './common.jsx'
+import { PageHeader, EmphasisBadge, ConfidenceDots, Empty, ProgressBar } from './common.jsx'
 import { starMethod } from '../data/insights.js'
 import { mostAskedBehavioral } from '../data/seed.js'
 
@@ -149,6 +149,15 @@ function Stories({ stories, lps, editing, setEditing, dispatch }) {
 
   return (
     <>
+      <div className="mb-6 rounded-2xl border border-line bg-surface p-4">
+        <div className="flex items-baseline justify-between">
+          <span className="font-serif text-lg">Story bank</span>
+          <span className="text-sm text-muted">{Math.min(stories.length, 10)} of 10 built</span>
+        </div>
+        <ProgressBar value={Math.min(stories.length, 10)} max={10} tone="sage" className="mt-2" />
+        <p className="mt-2 text-xs text-faint">Target 8–10 distinct stories, each mapped to 2–3 principles. Build these in the final push — after the DSA sprint.</p>
+      </div>
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="grid gap-2 sm:grid-cols-4">
           {starMethod.parts.map((p) => (

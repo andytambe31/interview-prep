@@ -6,7 +6,7 @@ Leadership-Principles STAR story bank, a researched playbook, and a resource/to-
 
 - **Stack:** React + Vite + Tailwind CSS
 - **Data:** everything is saved in your browser's **localStorage** (single user, no backend)
-- **Hosting:** static build deployed to **GitHub Pages** via GitHub Actions
+- **Hosting:** static build committed to `main` → `/docs` and served by **GitHub Pages** ("Deploy from a branch")
 
 ## Features
 
@@ -34,16 +34,33 @@ npm run preview  # preview the production build
 
 ## Deploying to GitHub Pages
 
-Deployment is automated by [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+This repo uses Pages' **"Deploy from a branch"** mode. Pages serves the files that
+are in the branch — it does **not** run `npm build` — so the built site is committed
+into the [`docs/`](docs) folder.
 
-1. In the repo, go to **Settings → Pages** and set **Source: GitHub Actions**.
-2. Push to `main` (or the feature branch, which is included in the workflow for
-   previewing). The workflow builds and publishes `dist/`.
-3. The site will be available at `https://<your-username>.github.io/interview-prep/`.
+**One-time Pages setting** (Settings → Pages → Build and deployment):
 
-The Vite `base` is set to `/interview-prep/` for the build so asset paths resolve
-correctly on the project Pages URL. If you rename the repo, update `base` in
-[`vite.config.js`](vite.config.js) to match.
+- **Source:** Deploy from a branch
+- **Branch:** `main`  **Folder:** `/docs`
+
+Then any push to `main` that updates `docs/` republishes the site at
+`https://<your-username>.github.io/interview-prep/`.
+
+### Updating the site after code changes
+
+```bash
+npm run build     # regenerates docs/
+git add docs
+git commit -m "Rebuild site"
+git push          # to main
+```
+
+Notes:
+- The Vite `base` is `/interview-prep/` for the build so asset paths resolve on the
+  project Pages URL. If you rename the repo, update `base` in
+  [`vite.config.js`](vite.config.js) to match.
+- `docs/.nojekyll` (copied from `public/`) disables Jekyll so the bundled `assets/`
+  are served untouched.
 
 ## Notes
 

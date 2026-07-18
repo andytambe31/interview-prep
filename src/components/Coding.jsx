@@ -1,13 +1,13 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { useStore } from '../store/StoreContext.jsx'
 import { PageHeader, ProgressBar, ConfidenceDots, DifficultyBadge, StatusBadge } from './common.jsx'
-import { seedCodingTopics } from '../data/seed.js'
 import { highYield } from '../data/insights.js'
+import { DSA_SPRINT_ORDER, LLD_TOPIC } from '../lib/focus.js'
 
 const STATUS_CYCLE = { todo: 'attempted', attempted: 'solved', solved: 'todo' }
 
-const LLD_TOPIC = 'Object-Oriented Design'
-const DSA_TOPICS = seedCodingTopics.filter((t) => t !== LLD_TOPIC)
+// Ordered weak/hard first (trees, graphs …) to match the personalized sprint.
+const DSA_TOPICS = DSA_SPRINT_ORDER
 
 export default function Coding() {
   const { state, dispatch } = useStore()

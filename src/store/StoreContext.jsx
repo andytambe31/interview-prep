@@ -92,6 +92,16 @@ function reducer(state, action) {
     }
     case 'DELETE_RESUME_ITEM':
       return { ...state, resumeItems: (state.resumeItems || []).filter((r) => r.id !== action.id) }
+    case 'UPSERT_REVISION_CARD': {
+      const list = state.revisionCards || []
+      const exists = list.some((c) => c.id === action.card.id)
+      return {
+        ...state,
+        revisionCards: exists ? list.map((c) => (c.id === action.card.id ? action.card : c)) : [action.card, ...list],
+      }
+    }
+    case 'DELETE_REVISION_CARD':
+      return { ...state, revisionCards: (state.revisionCards || []).filter((c) => c.id !== action.id) }
     case 'SET_UI':
       return { ...state, ui: { ...state.ui, ...action.patch } }
     case 'SET_CHECK':

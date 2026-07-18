@@ -64,72 +64,128 @@ export function nextUncoveredLP(lps, stories) {
   return lps.find((lp) => lp.emphasis === 'high' && !covered.has(lp.id)) || null
 }
 
-// Build an ordered plan. The first item is "Focus now"; the rest are "up next".
-export function buildPlan(state) {
-  const { coding, lps, stories, schedule, checklist } = state
+// How many days before the interview we switch from the DSA sprint to the
+// "everything else" final push (behavioral, LLD, résumé, mocks).
+export const FINAL_PUSH_DAYS = 4
+
+export function currentPhase(state) {
   const days = daysUntil(interviewDate(state))
-  const steps = []
+  if (days !== null && days <= FINAL_PUSH_DAYS) return 'final'
+  return 'dsa'
+}
 
-  // 1) Orientation — read what the loop is actually like (once).
-  if (!checklist.readLoop) {
-    steps.push({
-      id: 'read-loop',
-      kind: 'read',
-      minutes: 6,
-      title: 'Understand how the loop actually works',
-      detail: '4 rounds, LiveCode, the Bar Raiser, and how Leadership Principles are woven into every round.',
-      why: 'Knowing the shape of the day makes everything else you prepare land better.',
-      cta: { label: 'Read the overview', route: 'loop' },
-      check: 'readLoop',
-    })
-  }
+// Build an ordered plan. The first item is "Focus now"; the rest are "up next".
+// The plan is phase-aware: ~7 days of DSA first (repeated questions prioritized),
+// then the last few days pivot to behavioral, LLD, résumé, and mocks.
+export function buildPlan(state) {
+  const { coding, lps, stories, schedule, checklist, resumeItems = [] } = state
+  const days = daysUntil(interviewDate(state))
+  const phase = currentPhase(state)
 
-  // 2) Coding — practice the next high-frequency topic.
+  // --- Candidate steps (null if not applicable) ---
+
+  const readStep = !checklist.readLoop
+    ? {
+        id: 'read-loop',
+        kind: 'read',
+        minutes: 6,
+        title: 'Understand how the loop actually works',
+        detail: 'The 4 rounds, LiveCode, the Bar Raiser, the LP round, and LLD — read it once end-to-end.',
+        why: 'Knowing the shape of the day makes everything else you prepare land better.',
+        cta: { label: 'Read the overview', route: 'loop' },
+        check: 'readLoop',
+      }
+    : null
+
   const topic = nextCodingTopic(coding.problems)
-  if (topic) {
-    const picks = unsolvedInTopic(coding.problems, topic).slice(0, 3)
-    steps.push({
-      id: 'practice-' + topic,
-      kind: 'practice',
-      minutes: 90,
-      title: `Practice ${topic}`,
-      detail:
-        picks.length > 0
-          ? picks.map((p) => p.title).join(' · ')
-          : `Work through the ${topic} set.`,
-      why: 'It’s high-frequency for Amazon and you haven’t finished it yet.',
-      cta: { label: `Open ${topic}`, route: 'coding', topic },
-    })
-  }
+  const codingStep = topic
+    ? (() => {
+        const picks = unsolvedInTopic(coding.problems, topic).slice(0, 3)
+        const hasHigh = picks.some((p) => p.freq === 'high')
+        return {
+          id: 'practice-' + topic,
+          kind: 'practice',
+          minutes: 90,
+          title: `Practice ${topic}`,
+          detail: picks.length ? picks.map((p) => p.title).join(' · ') : `Work through the ${topic} set.`,
+          why: hasHigh
+            ? 'These are high-frequency for Amazon — repeated questions come first.'
+            : 'Keep building coverage across the core patterns.',
+          cta: { label: `Open ${topic}`, route: 'coding', topic },
+        }
+      })()
+    : null
 
-  // 3) Behavioral — draft a story for an uncovered high-priority LP.
   const lp = nextUncoveredLP(lps, stories)
-  if (lp) {
-    steps.push({
-      id: 'story-' + lp.id,
-      kind: 'story',
-      minutes: 20,
-      title: `Draft a story for “${lp.name}”`,
-      detail: lp.questions[0],
-      why: `${lp.name} is one of the most-tested principles for new-grad SDE and has no story yet.`,
-      cta: { label: 'Open Behavioral', route: 'behavioral' },
-    })
-  }
+  const storyStep = lp
+    ? {
+        id: 'story-' + lp.id,
+        kind: 'story',
+        minutes: 20,
+        title: `Draft a story for “${lp.name}”`,
+        detail: lp.questions[0],
+        why: `${lp.name} is one of the most-tested principles for new-grad SDE and has no story yet.`,
+        cta: { label: 'Open Behavioral', route: 'behavioral' },
+      }
+    : null
 
-  // 4) Logistics — capture the LiveCode link when it's close.
-  if (!schedule.logistics.livecodeLink && days !== null && days <= 10) {
-    steps.push({
-      id: 'livecode',
-      kind: 'logistics',
-      minutes: 1,
-      title: 'Save your LiveCode link',
-      detail: 'It arrives by email once your interview is scheduled — keep it here so it’s one tap away.',
-      why: 'You’ll want it ready on the day, not buried in your inbox.',
-      cta: { label: 'Open Logistics', route: 'logistics' },
-    })
-  }
+  const notReadyResume = resumeItems.find((r) => !r.ready)
+  const resumeStep =
+    resumeItems.length === 0
+      ? {
+          id: 'resume-add',
+          kind: 'resume',
+          minutes: 15,
+          title: 'Add your résumé projects',
+          detail: 'Drop in each project/experience so we can prep the dive-deep questions asked on every bullet.',
+          why: 'Amazon expects you to speak in depth to everything on your résumé.',
+          cta: { label: 'Open Résumé', route: 'resume' },
+        }
+      : notReadyResume
+        ? {
+            id: 'resume-' + notReadyResume.id,
+            kind: 'resume',
+            minutes: 20,
+            title: `Prep dive-deep answers: ${notReadyResume.title || 'a résumé project'}`,
+            detail: 'Problem, your role, tech & tradeoffs, hardest part, impact, what you’d change.',
+            why: 'Interviewers drill 2–3 layers deep on résumé projects — have the details cold.',
+            cta: { label: 'Open Résumé', route: 'resume' },
+          }
+        : null
 
-  return steps
+  const oodLeft = unsolvedInTopic(coding.problems, 'Object-Oriented Design')
+  const lldStep = oodLeft.length
+    ? {
+        id: 'lld-review',
+        kind: 'lld',
+        minutes: 45,
+        title: 'Practice object-oriented design',
+        detail: oodLeft.slice(0, 3).map((p) => p.title.replace(' (OOD)', '')).join(' · '),
+        why: 'SDE I often has an LLD/OOD round — practice talking through classes and APIs.',
+        cta: { label: 'Open Object-Oriented Design', route: 'coding', topic: 'Object-Oriented Design' },
+      }
+    : null
+
+  const livecodeStep =
+    !schedule.logistics.livecodeLink && days !== null && days <= 10
+      ? {
+          id: 'livecode',
+          kind: 'logistics',
+          minutes: 1,
+          title: 'Save your LiveCode link',
+          detail: 'It arrives by email once your interview is scheduled — keep it one tap away.',
+          why: 'You’ll want it ready on the day, not buried in your inbox.',
+          cta: { label: 'Open Logistics', route: 'logistics' },
+        }
+      : null
+
+  // --- Order by phase ---
+  const order =
+    phase === 'final'
+      ? [readStep, storyStep, resumeStep, lldStep, codingStep, livecodeStep]
+      : [readStep, codingStep, storyStep, resumeStep, lldStep, livecodeStep]
+
+  return order.filter(Boolean)
 }
 
 // A compact readiness snapshot for the home screen.

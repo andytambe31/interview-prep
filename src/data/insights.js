@@ -5,16 +5,72 @@
 
 export const loopStructure = {
   summary:
-    '4 back-to-back 60-min rounds, one day, 1-on-1. Reports converge on ~2 coding/DSA rounds, 1 largely behavioral round (often the Bar Raiser), and 1 mixed round (object-oriented design, or a 2025–26 "AI/GenAI + behavioral + DSA" hybrid). Leadership Principles appear in EVERY round.',
+    'Your loop is 4 × 60-min rounds, 1-on-1 (in person in Boston; many new-grad loops run virtually over Amazon Chime + LiveCode). Reports converge on ~2 coding/DSA rounds, 1 object-oriented / low-level design (LLD) round, and 1 behavioral round (often the Bar Raiser). Leadership Principles are probed in EVERY round — each interviewer is assigned ~2–3 to dig into.',
   rounds: [
-    { round: 1, focus: 'Coding / DSA', detail: 'Often an arrays / strings / hashmap / two-pointer opener. 1 medium (sometimes 2 easy-mediums).' },
-    { round: 2, focus: 'Coding / DSA (harder)', detail: 'The "raise-the-bar" technical round — frequently trees, graphs, or DP.' },
-    { round: 3, focus: 'Mixed — OOD or 2nd coding', detail: 'For SDE I, design is object-oriented (parking lot, deck of cards), NOT distributed systems.' },
-    { round: 4, focus: 'Bar Raiser', detail: 'Heavily behavioral/LP with deep follow-ups; often one coding problem too. Holds effective veto.' },
+    { round: 1, focus: 'Coding / DSA', detail: 'Often an arrays / strings / hashmap / two-pointer opener. 1 medium (sometimes 2 easy-mediums), plus 1–2 LP questions.' },
+    { round: 2, focus: 'Coding / DSA (harder)', detail: 'The "raise-the-bar" technical round — frequently trees, graphs, heaps, or DP, often with a follow-up to optimize.' },
+    { round: 3, focus: 'Object-oriented / low-level design', detail: 'For SDE I this is OOD (parking lot, vending machine, LRU/LFU cache) — NOT distributed systems. Sometimes a 2nd coding problem instead.' },
+    { round: 4, focus: 'Behavioral / Bar Raiser', detail: 'Mostly LP deep-dives with 3–4 layers of follow-up; may never open the editor. From outside the team; holds effective veto.' },
   ],
   perRound:
-    'Within a 60-min round: ~5 min intro, ~10–15 min Leadership Principle questions, ~30–40 min technical problem, ~5 min your questions. Do NOT treat any round as "coding only."',
+    'Within a 60-min round: ~5 min intro, ~10–15 min Leadership Principle questions, ~30–40 min technical work, ~5 min your questions. Do NOT treat any round as "coding only." The Bar Raiser round inverts this — it can be 45–60 min of pure behavioral.',
+  genAiNote:
+    'Some 2025–26 loops add a "Gen AI" round. Despite the name, candidates report it is essentially another standard DSA coding round with AI-adjacent framing — don’t over-prepare exotic ML.',
 }
+
+// The stages before the onsite loop.
+export const funnel = {
+  intro:
+    'The new-grad pipeline is: Application → Online Assessment (OA) → (sometimes a phone screen — often skipped for strong OA scores) → the 4-round loop → debrief → offer. University hiring is rolling, so timelines can stretch to months; apply early.',
+  oa: {
+    platform: 'HackerRank (proctored), ~1.5–2 hrs of actual work inside a larger window.',
+    parts: [
+      '2 coding problems (~70 min) — easy-to-medium DSA, auto-graded on hidden tests with partial credit. This score is the heaviest gate.',
+      'Work Simulation ("Day in the Life", ~1–2 hrs) — video situational-judgment scenarios mapped to Leadership Principles.',
+      'Work Styles Assessment (~15 min) — agree/disagree survey mapped to the 16 LPs.',
+      'Code Debugging (~20 min, common for SDE I) — fix several short buggy snippets fast.',
+    ],
+  },
+}
+
+// Object-oriented / low-level design round.
+export const lldRound = {
+  intro:
+    'For SDE I the design round is object-oriented (LLD) — model classes for a concrete real-world object in ~40 min. Not distributed systems. Interviewers care more about clean modeling, tradeoffs, and extensibility than lines of code.',
+  approach: [
+    'Clarify requirements & scope first (5–8 min) — functional needs, constraints, what’s out of scope. State assumptions aloud.',
+    'Identify core entities → classes; list attributes and responsibilities. Use enums for fixed categories.',
+    'Define relationships — composition vs. inheritance, “has-a” vs. “is-a”.',
+    'Define public methods/APIs and the main flows (e.g., park(), unpark()).',
+    'Apply design patterns where they fit naturally — Strategy, State, Factory, Singleton, Observer — and justify them.',
+    'Handle constraints & edge cases; design for extensibility (Open/Closed) so new types plug in without rewrites.',
+    'Talk through it the whole time; write class skeletons. Breadth first, then depth on one area.',
+  ],
+  prompts: [
+    'Parking Lot (the most common)',
+    'Elevator / elevator control system',
+    'Vending Machine (state machine)',
+    'ATM',
+    'LRU / LFU cache (implement end-to-end)',
+    'Deck of Cards / card game',
+    'Library / book management',
+    'Amazon Locker / package pickup',
+    'Rate Limiter (token bucket)',
+    'Tic-Tac-Toe',
+  ],
+  evaluates:
+    'Clean OOD fundamentals (decomposition, encapsulation, single responsibility), SOLID + sensible patterns, extensibility/maintainability, requirement-gathering & tradeoff reasoning, and edge cases — usually with LP probing mixed in.',
+}
+
+export const tools = [
+  { name: 'LiveCode', note: 'Amazon’s shared editor for coding rounds. Syntax highlighting, but NO run/compile and NO autocomplete — write correct code and dry-run it by hand.' },
+  { name: 'Amazon Chime', note: 'The video platform for virtual rounds. Just need a laptop, mic, and a quiet space.' },
+  { name: 'HackerRank', note: 'The proctored OA platform.' },
+  { name: 'NeetCode 150', note: 'Best pattern-based problem roadmap for the coding rounds.' },
+  { name: 'LeetCode — Amazon (last 6 months)', note: 'Highest-signal list for recently-asked questions.' },
+  { name: 'Pramp / interviewing.io', note: 'Live mock coding interviews with peers or pros.' },
+  { name: 'Hello Interview', note: 'Structured guides for LLD and behavioral, with an L4 track.' },
+]
 
 export const liveCode = [
   'LiveCode is Amazon\'s shared/collaborative editor — you and the interviewer see the same document in real time.',
@@ -113,8 +169,9 @@ export const bostonNotes = [
 export const highYield = [
   'Two Sum', 'Best Time to Buy/Sell Stock', 'Longest Substring Without Repeating Characters',
   'Trapping Rain Water', '3Sum', 'Number of Islands', 'Rotting Oranges', 'Course Schedule',
-  'LRU Cache', 'Merge Intervals', 'Koko Eating Bananas', 'K Closest Points to Origin',
-  'Reorganize String', 'Word Ladder', 'Serialize/Deserialize Binary Tree',
+  'Critical Connections in a Network', 'LRU Cache', 'Merge Intervals', 'Koko Eating Bananas',
+  'K Closest Points to Origin', 'Top K Frequent Words', 'Reorder Data in Log Files',
+  'Search Suggestions System', 'Copy List with Random Pointer', 'Serialize/Deserialize Binary Tree',
 ]
 
 export const sources = [
@@ -127,18 +184,20 @@ export const sources = [
   'amazon.jobs / aboutamazon.com — official prep & Boston office',
 ]
 
-// A 2-week plan keyed to the interview window (~Jul 27 – Aug 7, 2026).
+// The plan is allocated deliberately: ~7 days all-in on DSA (repeated/high-
+// frequency questions first), then the last 3–4 days for everything else.
+export const studyPlanIntro =
+  'Spend the first ~7 days entirely on data structures & algorithms — repeated/high-frequency questions first — then use the final 3–4 days for behavioral, LLD, résumé, and mocks. Coding is the primary gate, so it gets the bulk of the runway.'
+
 export const studyPlan = [
-  { day: 'Mon Jul 27', theme: 'Arrays & Hashing', items: 'Two Sum · Best Time to Buy/Sell · Contains Duplicate · Group Anagrams · Product Except Self · Top K Frequent. LP: draft 4 stories (Customer Obsession, Ownership).' },
-  { day: 'Tue Jul 28', theme: 'Two Pointers & Sliding Window', items: '3Sum · Container With Most Water · Longest Substring · Minimum Window Substring · Fruit Into Baskets. LP: 3 stories (Dive Deep, Bias for Action).' },
-  { day: 'Wed Jul 29', theme: 'Stack & Binary Search', items: 'Valid Parentheses · Min Stack · Daily Temperatures · Koko Eating Bananas · Search in Rotated Array. LP: 3 stories (Deliver Results, Learn & Be Curious).' },
-  { day: 'Thu Jul 30', theme: 'Trees', items: 'Level Order · Zigzag · LCA · Validate BST · Serialize/Deserialize · Max Path Sum. LP: rehearse out loud.' },
-  { day: 'Fri Jul 31', theme: 'Graphs / BFS-DFS', items: 'Number of Islands · Rotting Oranges · Course Schedule · Word Ladder · Word Search · Open the Lock.' },
-  { day: 'Sat Aug 1', theme: 'Heaps + Linked Lists', items: 'K Closest Points · Merge k Lists · Kth Largest · Reorganize String; Add Two Numbers · Copy Random List · Reverse k-Group.' },
-  { day: 'Sun Aug 2', theme: 'DP + Intervals + Tries', items: 'Coin Change · Word Break · LIS · Max Subarray; Merge Intervals · Insert Interval · Meeting Rooms II; Implement Trie · Word Search II. Rest half-day.' },
-  { day: 'Mon Aug 3', theme: 'LRU + Design/OOD', items: 'LRU Cache · Design HashMap; then OOD: Parking Lot + Deck of Cards (class diagrams + method signatures).' },
-  { day: 'Tue Aug 4', theme: 'Timed practice (simulate LiveCode)', items: '4 fresh Mediums in a plain editor, 30 min each, narrating + Big-O + testing. Redo any shaky high-freq problem.' },
-  { day: 'Wed Aug 5', theme: 'Full mock loop #1', items: '2 coding rounds (1 medium + 1 medium-hard graph/tree) + 1 behavioral. Get feedback on clarifying-questions habit and complexity analysis.' },
-  { day: 'Thu Aug 6', theme: 'Weak-spot repair + hards', items: 'Trapping Rain Water · Largest Rectangle · Sliding Window Max + 3 weakest topics. Finalize & time all STAR stories (2 min each).' },
-  { day: 'Fri Aug 7', theme: 'Light review — no new hards', items: 'Re-read your top-20 high-freq solutions, run the clarify→plan→code→test→complexity ritual on 2 easy-mediums, review LP stories, sleep early.' },
+  { phase: 'DSA sprint · ~7 days', day: 'Day 1', theme: 'Arrays, Hashing & Strings', items: 'Two Sum · Best Time to Buy/Sell · Product Except Self · Group Anagrams · Reorder Data in Log Files · Most Common Word · Partition Labels.' },
+  { phase: 'DSA sprint · ~7 days', day: 'Day 2', theme: 'Two Pointers & Sliding Window', items: '3Sum · Container With Most Water · Trapping Rain Water · Longest Substring · Minimum Window Substring · Fruit Into Baskets.' },
+  { phase: 'DSA sprint · ~7 days', day: 'Day 3', theme: 'Stack & Binary Search', items: 'Valid Parentheses · Min Stack · Daily Temperatures · Koko Eating Bananas · Search in Rotated Array · Search a 2D Matrix II.' },
+  { phase: 'DSA sprint · ~7 days', day: 'Day 4', theme: 'Trees', items: 'Level Order · LCA of a Binary Tree · Subtree of Another Tree · Right Side View · Serialize/Deserialize · All Nodes Distance K.' },
+  { phase: 'DSA sprint · ~7 days', day: 'Day 5', theme: 'Graphs / BFS-DFS', items: 'Number of Islands · Rotting Oranges · Course Schedule I/II · Critical Connections · Word Ladder · Alien Dictionary.' },
+  { phase: 'DSA sprint · ~7 days', day: 'Day 6', theme: 'Heaps & Linked Lists', items: 'K Closest Points · Top K Frequent Words · Merge k Sorted Lists · Find Median from Data Stream; Add Two Numbers · Copy Random List · Reverse k-Group.' },
+  { phase: 'DSA sprint · ~7 days', day: 'Day 7', theme: 'DP, Intervals, Tries + review', items: 'Coin Change · Word Break · Jump Game; Merge Intervals · Meeting Rooms II; Implement Trie · Search Suggestions System. Re-do any shaky high-freq problem.' },
+  { phase: 'Final push · last 3–4 days', day: 'Day 8', theme: 'Behavioral / Leadership Principles', items: 'Draft & rehearse 8–10 STAR stories mapped to the core LPs; run the top-15 questions out loud; prepare “Why Amazon?”.' },
+  { phase: 'Final push · last 3–4 days', day: 'Day 9', theme: 'LLD/OOD + Résumé', items: 'Practice Parking Lot, Vending Machine, ATM, LRU/LFU cache; drill every résumé project 2–3 layers deep (metrics, tradeoffs, “why X not Y”).' },
+  { phase: 'Final push · last 3–4 days', day: 'Day 10', theme: 'Mock loop + logistics', items: '1–2 full timed mocks (coding + behavioral) in a plain editor; patch weak spots; confirm LiveCode link & travel; light review; sleep early.' },
 ]

@@ -81,6 +81,17 @@ function reducer(state, action) {
     }
     case 'DELETE_RESOURCE':
       return { ...state, resources: state.resources.filter((r) => r.id !== action.id) }
+    case 'UPSERT_RESUME_ITEM': {
+      const exists = (state.resumeItems || []).some((r) => r.id === action.item.id)
+      return {
+        ...state,
+        resumeItems: exists
+          ? state.resumeItems.map((r) => (r.id === action.item.id ? action.item : r))
+          : [...(state.resumeItems || []), action.item],
+      }
+    }
+    case 'DELETE_RESUME_ITEM':
+      return { ...state, resumeItems: (state.resumeItems || []).filter((r) => r.id !== action.id) }
     case 'SET_UI':
       return { ...state, ui: { ...state.ui, ...action.patch } }
     case 'SET_CHECK':

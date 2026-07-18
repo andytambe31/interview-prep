@@ -55,6 +55,8 @@ export function buildInitialState() {
     stories: [],
     resources: seedResources.map((r) => ({ ...r })),
     todos: seedTodos.map((t) => ({ ...t })),
+    // Résumé projects/experiences the user prepares dive-deep answers for.
+    resumeItems: [],
     // Lightweight "have you read/done this" flags for the guided steps.
     checklist: {},
     ui: { codingTopic: null },

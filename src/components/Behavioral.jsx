@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useStore } from '../store/StoreContext.jsx'
 import { PageHeader, EmphasisBadge, ConfidenceDots, Empty } from './common.jsx'
 import { starMethod } from '../data/insights.js'
+import { mostAskedBehavioral } from '../data/seed.js'
 
 function newId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
@@ -65,6 +66,15 @@ function Principles({ lps, coverage, stories, dispatch, highCovered, highTotal }
         You’ve covered <strong>{highCovered} of {highTotal}</strong> core principles with a story. Aim for two stories
         each on the core ones before you branch out.
       </p>
+
+      <details className="mb-6 rounded-2xl border border-line bg-surface p-5">
+        <summary className="cursor-pointer font-serif text-lg">The 15 most-asked questions — prepare these first</summary>
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-[15px] text-ink/90">
+          {mostAskedBehavioral.map((q, i) => (
+            <li key={i}>{q}</li>
+          ))}
+        </ol>
+      </details>
       <div className="divide-y divide-line rounded-2xl border border-line bg-surface">
         {lps.map((lp) => {
           const covered = coverage[lp.id] || 0

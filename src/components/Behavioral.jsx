@@ -66,6 +66,10 @@ function Principles({ lps, coverage, stories, dispatch, highCovered, highTotal }
         You’ve covered <strong>{highCovered} of {highTotal}</strong> core principles with a story. Aim for two stories
         each on the core ones before you branch out.
       </p>
+      <p className="mb-6 text-xs text-faint">
+        Questions below are Amazon’s official recruiter question bank per principle (individual-contributor
+        questions; manager-only prompts omitted).
+      </p>
 
       <details className="mb-6 rounded-2xl border border-line bg-surface p-5">
         <summary className="cursor-pointer font-serif text-lg">The 15 most-asked questions — prepare these first</summary>

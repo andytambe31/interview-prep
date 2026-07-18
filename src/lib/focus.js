@@ -39,10 +39,13 @@ export function topicProgress(problems) {
   return seedCodingTopics.map((t) => map[t]).filter((m) => m.total > 0)
 }
 
-// The single topic to practice next: the earliest topic in the study order
+export const LLD_TOPIC = 'Object-Oriented Design'
+
+// The single DSA topic to practice next: the earliest topic in the study order
 // that still has unsolved high-frequency problems (fall back to any unsolved).
+// LLD is excluded — it's a separate section handled in the final push.
 export function nextCodingTopic(problems) {
-  const prog = topicProgress(problems)
+  const prog = topicProgress(problems).filter((m) => m.topic !== LLD_TOPIC)
   const byHigh = prog.find((m) => m.highSolved < m.highTotal)
   if (byHigh) return byHigh.topic
   const byAny = prog.find((m) => m.solved < m.total)
@@ -153,16 +156,16 @@ export function buildPlan(state) {
           }
         : null
 
-  const oodLeft = unsolvedInTopic(coding.problems, 'Object-Oriented Design')
+  const oodLeft = unsolvedInTopic(coding.problems, LLD_TOPIC)
   const lldStep = oodLeft.length
     ? {
         id: 'lld-review',
         kind: 'lld',
         minutes: 45,
-        title: 'Practice object-oriented design',
+        title: 'Practice a low-level design problem',
         detail: oodLeft.slice(0, 3).map((p) => p.title.replace(' (OOD)', '')).join(' · '),
-        why: 'SDE I often has an LLD/OOD round — practice talking through classes and APIs.',
-        cta: { label: 'Open Object-Oriented Design', route: 'coding', topic: 'Object-Oriented Design' },
+        why: 'SDE I often has an LLD/OOD round — rehearse talking through classes, patterns, and APIs.',
+        cta: { label: 'Open LLD', route: 'lld' },
       }
     : null
 
@@ -193,16 +196,20 @@ export function buildPlan(state) {
 
 // A compact readiness snapshot for the home screen.
 export function readiness(state) {
-  const solved = state.coding.problems.filter((p) => p.status === 'solved').length
-  const total = state.coding.problems.length
-  const highTotal = state.coding.problems.filter((p) => p.freq === 'high').length
-  const highSolved = state.coding.problems.filter((p) => p.freq === 'high' && p.status === 'solved').length
+  const dsa = state.coding.problems.filter((p) => p.topic !== LLD_TOPIC)
+  const lld = state.coding.problems.filter((p) => p.topic === LLD_TOPIC)
+  const solved = dsa.filter((p) => p.status === 'solved').length
+  const total = dsa.length
+  const highTotal = dsa.filter((p) => p.freq === 'high').length
+  const highSolved = dsa.filter((p) => p.freq === 'high' && p.status === 'solved').length
+  const lldSolved = lld.filter((p) => p.status === 'solved').length
   const covered = new Set(state.stories.flatMap((s) => s.lpIds || []))
   const highLps = state.lps.filter((lp) => lp.emphasis === 'high')
   const highCovered = highLps.filter((lp) => covered.has(lp.id)).length
   return {
     coding: { solved, total, pct: total ? Math.round((solved / total) * 100) : 0 },
     codingHigh: { solved: highSolved, total: highTotal },
+    lld: { solved: lldSolved, total: lld.length },
     behavioral: { covered: highCovered, total: highLps.length, stories: state.stories.length },
   }
 }

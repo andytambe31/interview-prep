@@ -4,6 +4,7 @@ import { daysUntil, interviewDate } from './lib/focus.js'
 import Today from './components/Today.jsx'
 import TheLoop from './components/TheLoop.jsx'
 import Coding from './components/Coding.jsx'
+import LLD from './components/LLD.jsx'
 import Behavioral from './components/Behavioral.jsx'
 import Resume from './components/Resume.jsx'
 import Logistics from './components/Logistics.jsx'
@@ -12,7 +13,8 @@ import SettingsDrawer from './components/SettingsDrawer.jsx'
 const NAV = [
   { id: 'today', label: 'Today', hint: 'Your next steps' },
   { id: 'loop', label: 'The Loop', hint: 'What to expect' },
-  { id: 'coding', label: 'Coding', hint: 'Problems & patterns' },
+  { id: 'coding', label: 'Coding', hint: 'DSA problems & patterns' },
+  { id: 'lld', label: 'LLD', hint: 'Object-oriented design' },
   { id: 'behavioral', label: 'Behavioral', hint: 'Principles & stories' },
   { id: 'resume', label: 'Résumé', hint: 'Know it cold' },
   { id: 'logistics', label: 'Logistics', hint: 'Schedule & day-of' },
@@ -50,6 +52,8 @@ export default function App() {
         return <TheLoop />
       case 'coding':
         return <Coding />
+      case 'lld':
+        return <LLD />
       case 'behavioral':
         return <Behavioral />
       case 'resume':

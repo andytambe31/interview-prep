@@ -6,9 +6,13 @@ import { highYield } from '../data/insights.js'
 
 const STATUS_CYCLE = { todo: 'attempted', attempted: 'solved', solved: 'todo' }
 
+const LLD_TOPIC = 'Object-Oriented Design'
+const DSA_TOPICS = seedCodingTopics.filter((t) => t !== LLD_TOPIC)
+
 export default function Coding() {
   const { state, dispatch } = useStore()
-  const problems = state.coding.problems
+  // LLD/OOD lives in its own section — Coding is DSA only.
+  const problems = state.coding.problems.filter((p) => p.topic !== LLD_TOPIC)
   const focusTopic = state.ui.codingTopic
 
   const [query, setQuery] = useState('')
@@ -39,7 +43,7 @@ export default function Coding() {
   }
 
   const groups = useMemo(() => {
-    return seedCodingTopics
+    return DSA_TOPICS
       .map((topic) => {
         const all = problems.filter((p) => p.topic === topic)
         const shown = all.filter(matches)

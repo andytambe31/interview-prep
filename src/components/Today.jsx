@@ -133,6 +133,14 @@ export default function Today({ onNavigate }) {
             tone="sage"
             onClick={() => onNavigate('behavioral')}
           />
+          <ReadinessRow
+            label="Low-level design"
+            lead={`${r.lld.solved} of ${r.lld.total} rehearsed`}
+            sub="Object-oriented design prompts"
+            value={r.lld.solved}
+            max={r.lld.total}
+            onClick={() => onNavigate('lld')}
+          />
         </div>
       </section>
     </div>

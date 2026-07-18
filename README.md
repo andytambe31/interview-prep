@@ -6,7 +6,7 @@ Leadership-Principles STAR story bank, a researched playbook, and a resource/to-
 
 - **Stack:** React + Vite + Tailwind CSS
 - **Data:** everything is saved in your browser's **localStorage** (single user, no backend)
-- **Hosting:** static build committed to `main` → `/docs` and served by **GitHub Pages** ("Deploy from a branch")
+- **Hosting:** built and published to **GitHub Pages** by a GitHub Actions workflow on every push to `main`
 
 ## Features
 
@@ -34,33 +34,21 @@ npm run preview  # preview the production build
 
 ## Deploying to GitHub Pages
 
-This repo uses Pages' **"Deploy from a branch"** mode. Pages serves the files that
-are in the branch — it does **not** run `npm build` — so the built site is committed
-into the [`docs/`](docs) folder.
+Deployment is automated by [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
+every push to `main` builds the app and publishes `dist/` to GitHub Pages. No build
+output is committed to the repo.
 
 **One-time Pages setting** (Settings → Pages → Build and deployment):
 
-- **Source:** Deploy from a branch
-- **Branch:** `main`  **Folder:** `/docs`
+- **Source:** **GitHub Actions**
 
-Then any push to `main` that updates `docs/` republishes the site at
-`https://<your-username>.github.io/interview-prep/`.
+Then merge to `main` (or push to it) and the workflow builds and deploys the site to
+`https://<your-username>.github.io/interview-prep/`. Watch progress under the repo's
+**Actions** tab.
 
-### Updating the site after code changes
-
-```bash
-npm run build     # regenerates docs/
-git add docs
-git commit -m "Rebuild site"
-git push          # to main
-```
-
-Notes:
-- The Vite `base` is `/interview-prep/` for the build so asset paths resolve on the
-  project Pages URL. If you rename the repo, update `base` in
-  [`vite.config.js`](vite.config.js) to match.
-- `docs/.nojekyll` (copied from `public/`) disables Jekyll so the bundled `assets/`
-  are served untouched.
+The Vite `base` is `/interview-prep/` for the build so asset paths resolve on the
+project Pages URL. If you rename the repo, update `base` in
+[`vite.config.js`](vite.config.js) to match.
 
 ## Notes
 

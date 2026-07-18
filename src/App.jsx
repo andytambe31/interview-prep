@@ -5,6 +5,7 @@ import Today from './components/Today.jsx'
 import TheLoop from './components/TheLoop.jsx'
 import Coding from './components/Coding.jsx'
 import Behavioral from './components/Behavioral.jsx'
+import Resume from './components/Resume.jsx'
 import Logistics from './components/Logistics.jsx'
 import SettingsDrawer from './components/SettingsDrawer.jsx'
 
@@ -13,6 +14,7 @@ const NAV = [
   { id: 'loop', label: 'The Loop', hint: 'What to expect' },
   { id: 'coding', label: 'Coding', hint: 'Problems & patterns' },
   { id: 'behavioral', label: 'Behavioral', hint: 'Principles & stories' },
+  { id: 'resume', label: 'Résumé', hint: 'Know it cold' },
   { id: 'logistics', label: 'Logistics', hint: 'Schedule & day-of' },
 ]
 
@@ -50,6 +52,8 @@ export default function App() {
         return <Coding />
       case 'behavioral':
         return <Behavioral />
+      case 'resume':
+        return <Resume />
       case 'logistics':
         return <Logistics />
       default:

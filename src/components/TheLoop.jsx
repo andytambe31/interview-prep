@@ -3,17 +3,23 @@ import { useStore } from '../store/StoreContext.jsx'
 import { PageHeader } from './common.jsx'
 import {
   loopStructure,
+  funnel,
+  lldRound,
+  tools,
   liveCode,
   barRaiser,
   starMethod,
   codingSignals,
   difficultySplit,
+  studyPlan,
+  studyPlanIntro,
   dayOf,
   timeline,
   redFlags,
   bostonNotes,
   sources,
 } from '../data/insights.js'
+import { role } from '../data/role.js'
 
 function Section({ id, title, children }) {
   return (
@@ -36,12 +42,17 @@ const Bullets = ({ items }) => (
 )
 
 const SECTIONS = [
+  ['role', 'The role & the bar'],
+  ['before', 'Before the loop (OA)'],
   ['structure', 'How the day is structured'],
   ['livecode', 'The LiveCode environment'],
+  ['lld', 'The design (LLD) round'],
   ['barraiser', 'The Bar Raiser'],
   ['star', 'Telling stories the Amazon way'],
   ['coding-signals', 'What they score while you code'],
   ['difficulty', 'How hard the problems get'],
+  ['plan', 'Your study plan'],
+  ['tools', 'Tools to know'],
   ['dayof', 'Day-of logistics'],
   ['after', 'After the loop'],
   ['pitfalls', 'Why people get rejected'],
@@ -77,6 +88,76 @@ export default function TheLoop() {
         ))}
       </nav>
 
+      <Section id="role" title="The role & the bar">
+        <p className="text-sm text-muted">{role.program}</p>
+        <p>{role.forWho}</p>
+        <div className="my-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <div className="kicker mb-2">What you’ll do</div>
+            <Bullets items={role.responsibilities} />
+          </div>
+          <div>
+            <div className="kicker mb-2">What the loop weighs</div>
+            <div className="space-y-2">
+              {role.evaluation.map((e) => (
+                <div key={e.area} className="rounded-xl border border-line bg-surface p-3">
+                  <div className="text-sm font-medium text-ink">
+                    {e.area} <span className="text-clay-600">· {e.weight}</span>
+                  </div>
+                  <div className="text-sm text-muted">{e.note}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="my-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <div className="kicker mb-2">Basic qualifications</div>
+            <Bullets items={role.basicQuals} />
+          </div>
+          <div>
+            <div className="kicker mb-2">Preferred qualifications</div>
+            <Bullets items={role.preferredQuals} />
+          </div>
+        </div>
+        <div className="kicker mb-2 mt-6">The bar you’re measured against (L4 → L5)</div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[34rem] text-sm">
+            <thead>
+              <tr className="text-left text-faint">
+                <th className="py-1 pr-4 font-medium"></th>
+                <th className="py-1 pr-4 font-medium">SDE I (L4)</th>
+                <th className="py-1 font-medium">SDE II (L5)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {role.leveling.map((r) => (
+                <tr key={r.dim} className="border-t border-line align-top">
+                  <td className="py-2 pr-4 font-medium text-ink">{r.dim}</td>
+                  <td className="py-2 pr-4 text-muted">{r.l4}</td>
+                  <td className="py-2 text-muted">{r.l5}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="kicker mb-2 mt-6">Boston hub — match your “why this team”</div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {role.bostonDomains.map((d) => (
+            <div key={d.name} className="rounded-xl border border-line bg-surface p-3">
+              <div className="text-sm font-medium text-ink">{d.name}</div>
+              <div className="text-sm text-muted">{d.note}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="before" title="Before the loop — the Online Assessment">
+        <p>{funnel.intro}</p>
+        <p className="mt-2 text-sm text-muted">Platform: {funnel.oa.platform}</p>
+        <Bullets items={funnel.oa.parts} />
+      </Section>
+
       <Section id="structure" title="How the day is structured">
         <p>{loopStructure.summary}</p>
         <div className="my-4 space-y-3">
@@ -95,6 +176,19 @@ export default function TheLoop() {
 
       <Section id="livecode" title="The LiveCode environment">
         <Bullets items={liveCode} />
+      </Section>
+
+      <Section id="lld" title="The design (LLD) round">
+        <p>{lldRound.intro}</p>
+        <p className="mt-3 font-medium text-ink">How to approach it</p>
+        <Bullets items={lldRound.approach} />
+        <p className="mt-3 font-medium text-ink">Common prompts</p>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {lldRound.prompts.map((p) => (
+            <span key={p} className="pill border border-line bg-surface text-muted">{p}</span>
+          ))}
+        </div>
+        <p className="mt-4 rounded-xl bg-clay-50 px-4 py-3 text-sm text-clay-700">{lldRound.evaluates}</p>
       </Section>
 
       <Section id="barraiser" title="The Bar Raiser">
@@ -135,6 +229,37 @@ export default function TheLoop() {
                 <span className="text-sm text-faint">{b.pct}</span>
               </div>
               <div className="text-sm text-muted">{b.note}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="plan" title="Your study plan">
+        <p>{studyPlanIntro}</p>
+        {['DSA sprint · ~7 days', 'Final push · last 3–4 days'].map((phase) => (
+          <div key={phase} className="my-4">
+            <div className="kicker mb-2">{phase}</div>
+            <div className="space-y-2">
+              {studyPlan.filter((d) => d.phase === phase).map((d) => (
+                <div key={d.day} className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-3 sm:flex-row sm:gap-4">
+                  <div className="w-24 shrink-0">
+                    <div className="text-sm font-semibold text-ink">{d.day}</div>
+                    <div className="text-xs text-clay-600">{d.theme}</div>
+                  </div>
+                  <div className="text-sm text-muted">{d.items}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </Section>
+
+      <Section id="tools" title="Tools to know">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {tools.map((t) => (
+            <div key={t.name} className="rounded-xl border border-line bg-surface p-3">
+              <div className="text-sm font-medium text-ink">{t.name}</div>
+              <div className="text-sm text-muted">{t.note}</div>
             </div>
           ))}
         </div>

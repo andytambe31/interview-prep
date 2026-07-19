@@ -172,6 +172,12 @@ export default function LLD() {
   )
 }
 
+const CodeBlock = ({ code }) => (
+  <pre className="mt-2 overflow-x-auto rounded-lg border border-line bg-surface p-3 font-mono text-[12px] leading-snug text-ink/80">
+    {code}
+  </pre>
+)
+
 function Fold({ title, children, defaultOpen = false }) {
   const [o, setO] = useState(defaultOpen)
   return (
@@ -194,22 +200,24 @@ function Primer() {
 
       <div className="mt-2">
         <Fold title="The 4 OOP pillars" defaultOpen>
-          <ul className="space-y-2 text-[15px] text-ink/90">
+          <div className="space-y-4 text-[15px] text-ink/90">
             {oopPillars.map((p) => (
-              <li key={p.name}>
+              <div key={p.name}>
                 <span className="font-medium text-ink">{p.name}</span> — <span className="text-muted">{p.what}</span>
-              </li>
+                {p.code && <CodeBlock code={p.code} />}
+              </div>
             ))}
-          </ul>
+          </div>
         </Fold>
 
         <Fold title="SOLID principles">
-          <div className="space-y-2">
+          <div className="space-y-4">
             {solid.map((s) => (
               <div key={s.letter} className="text-[15px]">
                 <span className="font-serif text-lg text-clay-600">{s.letter}</span>{' '}
                 <span className="font-medium text-ink">{s.name}</span> — <span className="text-muted">{s.idea}</span>
                 <div className="pl-5 text-sm text-faint">smell: {s.smell}</div>
+                {s.code && <CodeBlock code={s.code} />}
               </div>
             ))}
             <p className="mt-2 text-sm text-muted">{supporting}</p>
@@ -217,14 +225,15 @@ function Primer() {
         </Fold>
 
         <Fold title="UML relationships (is-a vs has-a)">
-          <ul className="space-y-1.5 text-[15px] text-ink/90">
+          <div className="space-y-4 text-[15px] text-ink/90">
             {relationships.map((r) => (
-              <li key={r.name}>
+              <div key={r.name}>
                 <span className="font-medium text-ink">{r.name}</span> — <span className="text-muted">{r.meaning}</span>{' '}
                 <span className="text-faint">e.g. {r.example}</span>
-              </li>
+                {r.code && <CodeBlock code={r.code} />}
+              </div>
             ))}
-          </ul>
+          </div>
         </Fold>
 
         <Fold title="Design patterns that show up in LLD">
@@ -232,14 +241,15 @@ function Primer() {
             {Object.entries(lldPatterns).map(([group, list]) => (
               <div key={group}>
                 <div className="kicker mb-1">{group}</div>
-                <ul className="space-y-1.5 text-[15px] text-ink/90">
+                <div className="space-y-4 text-[15px] text-ink/90">
                   {list.map((pat) => (
-                    <li key={pat.name}>
+                    <div key={pat.name}>
                       <span className="font-medium text-ink">{pat.name}</span> — {pat.oneLiner}{' '}
                       <span className="text-faint">Use when: {pat.useWhen}</span>
-                    </li>
+                      {pat.code && <CodeBlock code={pat.code} />}
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             ))}
           </div>

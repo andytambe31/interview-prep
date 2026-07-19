@@ -97,14 +97,14 @@ export function mergeSeed(state) {
     // Refresh the seeded to-do list (text/priority) while preserving whether
     // you've checked each one off, plus any to-dos you added yourself.
     todos: mergeList(state.todos, seedTodos, ['done']),
-    // Keep all existing cards untouched (user may have edited them); only add
-    // newly-dictated seed cards whose id isn't present yet.
+    // Refresh seeded cards from seed (so dictated/content updates flow through)
+    // and keep any cards you added yourself.
     revisionCards: mergeCards(state.revisionCards, seedRevisionCards),
   }
 }
 
 function mergeCards(stored = [], seed = []) {
-  const storedIds = new Set(stored.map((c) => c.id))
-  const fresh = seed.filter((c) => !storedIds.has(c.id))
-  return [...stored, ...fresh]
+  const seedIds = new Set(seed.map((c) => c.id))
+  const userCreated = stored.filter((c) => !seedIds.has(c.id))
+  return [...seed, ...userCreated]
 }

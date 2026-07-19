@@ -1,8 +1,20 @@
 import React, { useState } from 'react'
 import { useStore } from '../store/StoreContext.jsx'
 import { PageHeader, ProgressBar, ConfidenceDots, DifficultyBadge, StatusBadge } from './common.jsx'
-import { lldApproachIntro, lldProblems } from '../data/lld.js'
+import { lldProblems } from '../data/lld.js'
 import { lldRound } from '../data/insights.js'
+import {
+  whatIsLLD,
+  oopPillars,
+  solid,
+  supporting,
+  relationships,
+  patterns as lldPatterns,
+  approach as lldApproach,
+  beginnerMistakes,
+  learningOrder,
+  resources as lldResources,
+} from '../data/lldFundamentals.js'
 
 const STATUS_CYCLE = { todo: 'attempted', attempted: 'solved', solved: 'todo' }
 const LLD_TOPIC = 'Object-Oriented Design'
@@ -34,7 +46,6 @@ export default function LLD() {
   const solved = tracked.filter((p) => p.status === 'solved').length
 
   const [open, setOpen] = useState(null)
-  const [showApproach, setShowApproach] = useState(false)
 
   const cycle = (p) => p && dispatch({ type: 'UPDATE_PROBLEM', id: p.id, patch: { status: STATUS_CYCLE[p.status] } })
 
@@ -46,20 +57,8 @@ export default function LLD() {
         intro="The object-oriented design prompts most reported in Amazon new-grad loops — each worked out: what to clarify, the core classes, the patterns to reach for, the key APIs, and how to extend it. Rehearse talking through one end-to-end."
       />
 
-      {/* General approach */}
-      <div className="mb-6 rounded-2xl border border-line bg-surface p-5">
-        <button className="flex w-full items-center justify-between text-left" onClick={() => setShowApproach(!showApproach)}>
-          <span className="font-serif text-lg">The approach interviewers want</span>
-          <span className="text-faint">{showApproach ? '−' : '+'}</span>
-        </button>
-        <p className="mt-2 text-sm text-muted">{lldApproachIntro}</p>
-        {showApproach && (
-          <div className="mt-4">
-            <List items={lldRound.approach} />
-            <p className="mt-4 rounded-xl bg-clay-50 px-4 py-3 text-sm text-clay-700">{lldRound.evaluates}</p>
-          </div>
-        )}
-      </div>
+      {/* Start-here primer */}
+      <Primer />
 
       {/* Progress */}
       <div className="mb-6">
@@ -168,6 +167,109 @@ export default function LLD() {
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+function Fold({ title, children, defaultOpen = false }) {
+  const [o, setO] = useState(defaultOpen)
+  return (
+    <div className="border-t border-line first:border-t-0">
+      <button className="flex w-full items-center justify-between py-3 text-left" onClick={() => setO(!o)}>
+        <span className="font-medium text-ink">{title}</span>
+        <span className="text-faint">{o ? '−' : '+'}</span>
+      </button>
+      {o && <div className="pb-4">{children}</div>}
+    </div>
+  )
+}
+
+function Primer() {
+  return (
+    <div className="mb-8 rounded-2xl border border-clay-200 bg-clay-50/40 p-5">
+      <div className="kicker mb-1">New to LLD? Start here</div>
+      <p className="mb-2 max-w-prose text-[15px] leading-relaxed text-ink/90">{whatIsLLD}</p>
+      <p className="mb-2 max-w-prose text-sm text-muted">{learningOrder}</p>
+
+      <div className="mt-2">
+        <Fold title="The 4 OOP pillars" defaultOpen>
+          <ul className="space-y-2 text-[15px] text-ink/90">
+            {oopPillars.map((p) => (
+              <li key={p.name}>
+                <span className="font-medium text-ink">{p.name}</span> — <span className="text-muted">{p.what}</span>
+              </li>
+            ))}
+          </ul>
+        </Fold>
+
+        <Fold title="SOLID principles">
+          <div className="space-y-2">
+            {solid.map((s) => (
+              <div key={s.letter} className="text-[15px]">
+                <span className="font-serif text-lg text-clay-600">{s.letter}</span>{' '}
+                <span className="font-medium text-ink">{s.name}</span> — <span className="text-muted">{s.idea}</span>
+                <div className="pl-5 text-sm text-faint">smell: {s.smell}</div>
+              </div>
+            ))}
+            <p className="mt-2 text-sm text-muted">{supporting}</p>
+          </div>
+        </Fold>
+
+        <Fold title="UML relationships (is-a vs has-a)">
+          <ul className="space-y-1.5 text-[15px] text-ink/90">
+            {relationships.map((r) => (
+              <li key={r.name}>
+                <span className="font-medium text-ink">{r.name}</span> — <span className="text-muted">{r.meaning}</span>{' '}
+                <span className="text-faint">e.g. {r.example}</span>
+              </li>
+            ))}
+          </ul>
+        </Fold>
+
+        <Fold title="Design patterns that show up in LLD">
+          <div className="space-y-4">
+            {Object.entries(lldPatterns).map(([group, list]) => (
+              <div key={group}>
+                <div className="kicker mb-1">{group}</div>
+                <ul className="space-y-1.5 text-[15px] text-ink/90">
+                  {list.map((pat) => (
+                    <li key={pat.name}>
+                      <span className="font-medium text-ink">{pat.name}</span> — {pat.oneLiner}{' '}
+                      <span className="text-faint">Use when: {pat.useWhen}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </Fold>
+
+        <Fold title="How to attack a question (~40 min)">
+          <ol className="list-decimal space-y-1.5 pl-5 text-[15px] text-ink/90">
+            {lldApproach.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ol>
+          <p className="mt-3 rounded-xl bg-surface px-4 py-3 text-sm text-muted">{lldRound.evaluates}</p>
+        </Fold>
+
+        <Fold title="Beginner mistakes to avoid">
+          <List items={beginnerMistakes} />
+        </Fold>
+
+        <Fold title="Where to learn more">
+          <ul className="space-y-1.5 text-[15px]">
+            {lldResources.map((r) => (
+              <li key={r.title}>
+                <a href={r.url} target="_blank" rel="noreferrer" className="font-medium text-clay-600 hover:underline">
+                  {r.title}
+                </a>{' '}
+                <span className="text-faint">— {r.note}</span>
+              </li>
+            ))}
+          </ul>
+        </Fold>
       </div>
     </div>
   )

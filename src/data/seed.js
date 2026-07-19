@@ -563,6 +563,10 @@ export const seedRevisionCards = [
   RC('rc-traversal-mnemonic', 'Trees & Traversals',
     'Easy way to remember pre / in / post order?',
     'It’s about where the CURRENT node sits relative to its children:\n\n• Node BEFORE children → preorder (root first)\n• Node BETWEEN children → inorder (root in the middle)\n• Node AFTER children → postorder (root last)'),
+  RC('rc-balanced', 'Trees & Traversals',
+    'Balanced binary tree — what is the condition?',
+    'For EVERY node:  |height(left subtree) − height(right subtree)| ≤ 1.\n\nGotcha: it must hold at every node, not just the root. Solve bottom-up — have the recursion return the height, and short-circuit to −1 the moment any subtree is unbalanced, so it stays O(n) instead of O(n²).',
+    'int height(TreeNode node) {\n    if (node == null) return 0;\n    int l = height(node.left);\n    if (l == -1) return -1;              // left already unbalanced\n    int r = height(node.right);\n    if (r == -1) return -1;              // right already unbalanced\n    if (Math.abs(l - r) > 1) return -1; // this node unbalanced\n    return 1 + Math.max(l, r);\n}\n// balanced == (height(root) != -1)'),
 ]
 
 // ---------------------------------------------------------------------------

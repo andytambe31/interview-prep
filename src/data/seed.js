@@ -569,6 +569,33 @@ export const seedRevisionCards = [
     'Balanced binary tree — what is the condition?',
     'For EVERY node:  |height(left subtree) − height(right subtree)| ≤ 1.\n\nGotcha: it must hold at every node, not just the root. Solve bottom-up — have the recursion return the height, and short-circuit to −1 the moment any subtree is unbalanced, so it stays O(n) instead of O(n²).',
     'int height(TreeNode node) {\n    if (node == null) return 0;\n    int l = height(node.left);\n    if (l == -1) return -1;              // left already unbalanced\n    int r = height(node.right);\n    if (r == -1) return -1;              // right already unbalanced\n    if (Math.abs(l - r) > 1) return -1; // this node unbalanced\n    return 1 + Math.max(l, r);\n}\n// balanced == (height(root) != -1)'),
+
+  // ---- Binary Search Trees (BST) deck ----
+  RC('rc-bst-def', 'Binary Search Trees',
+    'BST — what is the defining property?',
+    'For EVERY node: all values in the left subtree < node’s value < all values in the right subtree. This implies values are unique. And because it holds “at any node”, every subtree of a BST is itself a BST.'),
+  RC('rc-bst-ops', 'Binary Search Trees',
+    'BST — time complexity of search / insert / delete?',
+    'O(log n) on average — each comparison prunes an entire subtree, halving the search space (binary search). Worst case O(n): a degenerate tree that’s basically a straight line / linked list (e.g., inserting sorted values so there are no left children).'),
+  RC('rc-bst-search', 'Binary Search Trees',
+    'How do you search for a value in a BST?',
+    'Start at the root. If target < node.val go left; if target > node.val go right; equal → found. Each step throws away one whole subtree. e.g. find 20 under root 23: 20<23 → left, 20>8 → right, 20>17 → right, found.',
+    'boolean search(TreeNode node, int target) {\n    while (node != null) {\n        if (target == node.val) return true;\n        node = target < node.val ? node.left : node.right;\n    }\n    return false;\n}'),
+  RC('rc-bst-inorder', 'Binary Search Trees',
+    'BST — what does an inorder traversal give you? (the key trick)',
+    'An inorder DFS (left → node → right) visits the nodes in SORTED order. This is the single most useful BST fact — it turns “sorted-order” problems into O(n) with no sort.'),
+  RC('rc-bst-rangesum', 'Binary Search Trees',
+    'Range Sum of BST (938) — how do you use the BST property?',
+    'Sum values in [low, high]. Naive DFS visits all nodes O(n). Prune instead: if node.val < low, the whole LEFT subtree is too small → skip it; if node.val > high, the whole RIGHT subtree is too big → skip it. Add node.val only when low ≤ val ≤ high. O(n) worst case, but far fewer visits on average.',
+    'int rangeSum(TreeNode node, int low, int high) {\n    if (node == null) return 0;\n    if (node.val < low)  return rangeSum(node.right, low, high);\n    if (node.val > high) return rangeSum(node.left,  low, high);\n    return node.val\n         + rangeSum(node.left,  low, high)\n         + rangeSum(node.right, low, high);\n}'),
+  RC('rc-bst-minabsdiff', 'Binary Search Trees',
+    'Minimum Absolute Difference in BST (530) — best approach?',
+    'Min |a − b| over any two nodes. Since inorder gives sorted order, the answer is always between ADJACENT values in that order. Do an inorder DFS tracking the previous value; take the min gap (node.val − prev). O(n), no sort — beats “collect all + sort” (O(n log n)).',
+    'Integer prev = null;\nint best = Integer.MAX_VALUE;\nvoid inorder(TreeNode node) {\n    if (node == null) return;\n    inorder(node.left);\n    if (prev != null) best = Math.min(best, node.val - prev);\n    prev = node.val;\n    inorder(node.right);\n}'),
+  RC('rc-bst-validate', 'Binary Search Trees',
+    'Validate BST (98) — how do you check it correctly?',
+    'Pass an allowed range (small, large) down the tree; require small < node.val < large. Going left: large = node.val. Going right: small = node.val. Root starts with (−∞, +∞). Base case: null → true. Both subtrees must also be valid (AND). Gotcha: comparing a node only to its direct children is WRONG — you must carry the bounds down from ancestors.',
+    'boolean dfs(TreeNode node, long small, long large) {\n    if (node == null) return true;\n    if (!(small < node.val && node.val < large)) return false;\n    return dfs(node.left,  small, node.val)\n        && dfs(node.right, node.val, large);\n}\n// call: dfs(root, Long.MIN_VALUE, Long.MAX_VALUE)'),
 ]
 
 // ---------------------------------------------------------------------------

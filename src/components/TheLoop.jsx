@@ -13,6 +13,7 @@ import {
   difficultySplit,
   studyPlan,
   studyPlanIntro,
+  dailyHabit,
   dayOf,
   timeline,
   redFlags,
@@ -236,7 +237,8 @@ export default function TheLoop() {
 
       <Section id="plan" title="Your study plan">
         <p>{studyPlanIntro}</p>
-        {['DSA sprint · ~7 days', 'Final push · last 3–4 days'].map((phase) => (
+        <p className="my-3 rounded-xl bg-clay-50 px-4 py-3 text-sm font-medium text-clay-700">{dailyHabit}</p>
+        {[...new Set(studyPlan.map((d) => d.phase))].map((phase) => (
           <div key={phase} className="my-4">
             <div className="kicker mb-2">{phase}</div>
             <div className="space-y-2">

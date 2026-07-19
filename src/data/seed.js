@@ -207,6 +207,8 @@ const AMAZON_EXTRA = [
   ['Basic Calculator II', 'Stack', 'Medium'],
   ['Binary Tree Zigzag Level Order Traversal', 'Trees', 'Medium'],
   ['All Nodes Distance K in Binary Tree', 'Trees', 'Medium'],
+  ['Path Sum', 'Trees', 'Easy'],
+  ['Path Sum II', 'Trees', 'Medium'],
   ['Search Suggestions System', 'Tries', 'Medium'],
   ['Concatenated Words', 'Tries', 'Hard'],
   ['Critical Connections in a Network', 'Graphs', 'Hard'],

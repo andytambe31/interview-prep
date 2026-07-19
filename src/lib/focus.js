@@ -46,8 +46,8 @@ export const LLD_TOPIC = 'Object-Oriented Design'
 // graphs). So the sprint front-loads trees/graphs and the other harder
 // patterns, and treats the array family as a quick refresh at the end.
 export const DSA_SPRINT_ORDER = [
-  'Trees', // weakest — front-loaded (with Andy)
-  'Graphs', // weakest — front-loaded (with Andy)
+  'Trees', // weakest — front-loaded
+  'Graphs', // weakest — front-loaded
   'Dynamic Programming', // popular — pushed up
   'Heaps',
   'Binary Search', // important — kept high

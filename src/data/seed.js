@@ -596,6 +596,12 @@ export const seedRevisionCards = [
     'Validate BST (98) — how do you check it correctly?',
     'Pass an allowed range (small, large) down the tree; require small < node.val < large. Going left: large = node.val. Going right: small = node.val. Root starts with (−∞, +∞). Base case: null → true. Both subtrees must also be valid (AND). Gotcha: comparing a node only to its direct children is WRONG — you must carry the bounds down from ancestors.',
     'boolean dfs(TreeNode node, long small, long large) {\n    if (node == null) return true;\n    if (!(small < node.val && node.val < large)) return false;\n    return dfs(node.left,  small, node.val)\n        && dfs(node.right, node.val, large);\n}\n// call: dfs(root, Long.MIN_VALUE, Long.MAX_VALUE)'),
+
+  // ---- OOP Principles deck (LLD) ----
+  RC('rc-oop-encapsulation', 'OOP Principles',
+    'Encapsulation — what is it, in one clean line?',
+    'Encapsulation bundles data with the methods that operate on it, and hides the internal state behind a clean public interface — so callers use the object through controlled methods instead of touching its fields directly.\n\nWhy it matters:\n• Protects sensitive/critical data — nothing outside the class can put it in an invalid state.\n• Enforces invariants in one place — every change goes through a method that can validate it (e.g. reject a negative amount).\n• Improves security & maintainability — you can change the internals later without breaking callers, because they only depend on the interface.\n\nThe mechanism: make fields private, expose them through public getters/setters (or richer methods) that guard every access.',
+    '// Balance is PRIVATE — no one can set it to a bad value directly.\nclass BankAccount {\n    private double balance;      // hidden internal state\n\n    public double getBalance() { // read via a controlled method\n        return balance;\n    }\n\n    public void deposit(double amount) {\n        if (amount <= 0)         // the guard is the whole point\n            throw new IllegalArgumentException("Amount must be > 0");\n        balance += amount;\n    }\n}\n\n// account.balance = -500;      // ✗ won\'t compile — field is private\n// account.deposit(-500);       // ✗ rejected by the guard\n// account.deposit(500);        // ✓ only valid path in')
 ]
 
 // ---------------------------------------------------------------------------

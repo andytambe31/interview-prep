@@ -187,6 +187,21 @@ function Transcript({ mindset, onHide }) {
   )
 }
 
+// A side annotation — the metadata attached to a beat, styled to read as a
+// margin note rather than part of the dialogue.
+function Annotation({ label, text, tone }) {
+  const styles =
+    tone === 'probe'
+      ? 'border-sage-300 bg-sage-50/70 text-sage-700'
+      : 'border-clay-300 bg-surface text-clay-700'
+  return (
+    <div className={`mt-1.5 flex items-start gap-2 rounded-md border border-dashed ${styles} px-2.5 py-1`}>
+      <span className="shrink-0 pt-px text-[10px] font-semibold uppercase tracking-wider opacity-70">{label}</span>
+      <span className="text-xs not-italic leading-relaxed">{text}</span>
+    </div>
+  )
+}
+
 function Beat({ beat, cast, thoughtNo, thoughtTotal }) {
   if (beat.t === 'stage') {
     return (
@@ -200,7 +215,10 @@ function Beat({ beat, cast, thoughtNo, thoughtTotal }) {
     return (
       <div className="flex gap-3">
         <span className="w-16 shrink-0 pt-0.5 text-right text-sm font-semibold text-ink/70">{cast.interviewer}</span>
-        <p className="flex-1 text-[15px] leading-relaxed text-ink/90">{beat.text}</p>
+        <div className="flex-1">
+          <p className="text-[15px] leading-relaxed text-ink/90">{beat.text}</p>
+          {beat.probing && <Annotation label="Looking for" text={beat.probing} tone="probe" />}
+        </div>
       </div>
     )
   }
@@ -222,6 +240,7 @@ function Beat({ beat, cast, thoughtNo, thoughtTotal }) {
             {thoughtNo && <span className="ml-1 text-clay-500/70">· {thoughtNo} of {thoughtTotal}</span>}
           </div>
           <p className="text-[15px] italic leading-relaxed text-clay-900">{beat.text}</p>
+          {beat.concept && <Annotation label="Concept" text={beat.concept} tone="concept" />}
         </div>
       </div>
     )

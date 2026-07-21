@@ -1,25 +1,28 @@
 // Per-question INTERVIEW SIMULATIONS. Each one is a script: two fictional
 // people — an interviewer (Priya, an Amazon SDE II) and a candidate (Alex, a
-// new-grad) — actually talking through one problem, start to finish, the way a
-// real loop goes. The candidate's inner thoughts are woven in as highlighted
-// "(thinking)" lines so you can watch how a strong candidate's brain works
-// between the spoken words. All code is Java.
+// new-grad) — actually talking through one problem, start to finish. The
+// candidate's inner thoughts are woven in as highlighted "(thinking)" lines.
+//
+// Beats also carry METADATA rendered on the side (not spoken):
+//   • a think beat can carry `concept` — the concept that thought draws on
+//   • an interviewer beat can carry `probing` — what the interviewer is
+//     actually testing with that line
 //
 // Beat types:
 //   stage       — a scene divider (Clarify, Approach, Code, Test…)
-//   interviewer — the interviewer's line
-//   say         — the candidate's spoken line
-//   think       — the candidate's inner thought (highlighted, numbered)
-//   code        — code the candidate types
+//   interviewer — the interviewer's line        I(text, probing?)
+//   say         — the candidate's spoken line    SAY(text)
+//   think       — the candidate's inner thought  TH(text, concept?)
+//   code        — code the candidate types       CODE(text)
 //
 // Keyed by the coding problem id (slugify(title)).
 
 const CAST = { interviewer: 'Priya', candidate: 'Alex' }
 
 const S = (label) => ({ t: 'stage', label })
-const I = (text) => ({ t: 'interviewer', text })
+const I = (text, probing) => ({ t: 'interviewer', text, ...(probing ? { probing } : {}) })
 const SAY = (text) => ({ t: 'say', text })
-const TH = (text) => ({ t: 'think', text })
+const TH = (text, concept) => ({ t: 'think', text, ...(concept ? { concept } : {}) })
 const CODE = (text) => ({ t: 'code', text })
 
 const MINDSETS = {
@@ -108,18 +111,24 @@ const MINDSETS = {
     prompt: 'Given the root of a binary tree, return the length of its diameter — the number of edges on the longest path between any two nodes. The path may or may not pass through the root.',
     beats: [
       S('The prompt'),
-      I("Alright Alex — return the diameter of a binary tree: the length of the longest path between any two nodes."),
-      TH("The words to catch are 'any two nodes.' The longest path does NOT have to go through the root. That's the whole trick."),
+      I("Alright Alex — return the diameter of a binary tree: the length of the longest path between any two nodes.",
+        'Whether you notice the path need not pass through the root — the detail that makes this more than a height problem.'),
+      TH("The words to catch are 'any two nodes.' The longest path does NOT have to go through the root. That's the whole trick.",
+        'Reading the problem precisely — the path can bend at any node, not just the root.'),
       SAY("Is the diameter measured in edges or in nodes?"),
       I("Edges."),
-      TH("Here's my key realization: for any single node, the longest path that bends at that node is height(left) + height(right), in edges. So the diameter is just the maximum of that over every node."),
+      TH("Here's my key realization: for any single node, the longest path that bends at that node is height(left) + height(right), in edges. So the diameter is just the maximum of that over every node.",
+        'Reframing the goal in terms of subtree heights — the key insight that unlocks the problem.'),
       S('Approach'),
       SAY("So my plan: compute height with DFS, and at each node update a running best equal to leftHeight + rightHeight. I return the height upward, but I track the diameter separately."),
-      I("Why track it separately — why not just return the diameter?"),
-      TH("She's testing whether I understand why the global is needed. Good — I do."),
+      I("Why track it separately — why not just return the diameter?",
+        'Do you actually understand why one return value is not enough, or did you memorize the trick?'),
+      TH("She's testing whether I understand why the global is needed. Good — I do.",
+        'Recognizing the interviewer is probing depth of understanding, not just correctness.'),
       SAY("Because each recursive call can only return one value — the height — but the node that maximizes the diameter could be anywhere, not the root. So I visit every node, and I keep the best-so-far in a field."),
       I("That's right."),
-      TH("This is the core tree pattern: return one thing, height, and update another thing, the answer, as a side effect. Return-up plus update-a-global."),
+      TH("This is the core tree pattern: return one thing, height, and update another thing, the answer, as a side effect. Return-up plus update-a-global.",
+        'Return-up + update-a-global — the reusable pattern for whole-tree aggregate problems.'),
       S('Code'),
       CODE(`int best = 0;
 
@@ -135,10 +144,12 @@ private int height(TreeNode node) {
     best = Math.max(best, l + r);           // path bending HERE, in edges
     return 1 + Math.max(l, r);              // my height, one edge up
 }`),
-      TH("Height of null is 0. l + r is exactly the edge count of the path that bends at this node. I return 1 + max(l, r) because stepping up to my parent adds one edge."),
+      TH("Height of null is 0. l + r is exactly the edge count of the path that bends at this node. I return 1 + max(l, r) because stepping up to my parent adds one edge.",
+        'Height measured in edges: null = 0, and going up one level adds one edge.'),
       S('Test'),
       SAY("Trace [1,2,3,4,5]. Node 2 has left height 1 and right height 1, so best is 2 there; up at the root the longest bend comes out to 3."),
-      I("Complexity?"),
+      I("Complexity?",
+        'Can you state and justify time and space, not just produce working code.'),
       SAY("O(n) time — one height computation per node — and O(h) space."),
       I("Nicely reasoned."),
     ],
@@ -153,16 +164,21 @@ private int height(TreeNode node) {
     prompt: 'Given the root of a binary tree, determine whether it is a valid binary search tree (BST): for every node, all values in its left subtree are strictly less and all in its right subtree are strictly greater.',
     beats: [
       S('The prompt'),
-      I("Okay Alex, a medium. Given a binary tree, tell me whether it's a valid BST."),
-      TH("The definition is the trap here: every node has to be greater than EVERYTHING in its left subtree and less than everything in its right — not just its immediate children."),
+      I("Okay Alex, a medium. Given a binary tree, tell me whether it's a valid BST.",
+        'Do you know the true BST invariant, or will you fall for the naive parent-child check?'),
+      TH("The definition is the trap here: every node has to be greater than EVERYTHING in its left subtree and less than everything in its right — not just its immediate children.",
+        'The BST invariant constrains ALL ancestors, not just the direct parent.'),
       SAY("Are duplicates allowed, or is it strictly less and strictly greater?"),
       I("Strictly. Assume all values are distinct."),
-      TH("So the tempting check — left child < node < right child — is wrong. A value buried deep in the left subtree could be bigger than a high-up ancestor and still pass a local check. I need to carry down the range that's allowed."),
+      TH("So the tempting check — left child < node < right child — is wrong. A value buried deep in the left subtree could be bigger than a high-up ancestor and still pass a local check. I need to carry down the range that's allowed.",
+        'Why a local parent-child comparison fails: it misses distant-ancestor violations.'),
       SAY("I want to flag something — a naive check comparing each node only to its direct children would actually pass some invalid trees. A value deep in the left subtree could still be larger than an ancestor."),
-      I("Good — so how do you fix that?"),
+      I("Good — so how do you fix that?",
+        'Can you get from spotting the flaw to the bounds/range technique that fixes it.'),
       SAY("I carry a valid range down the recursion. Each node must satisfy low < value < high. Going left, the high tightens to the node's value; going right, the low tightens to it. The root starts wide open, negative to positive infinity."),
       I("Go ahead."),
-      TH("One edge case I have to respect: node values can be Integer.MIN_VALUE or MAX_VALUE. If my bounds are ints, the comparison at the extremes breaks. I'll use long bounds so it never overflows."),
+      TH("One edge case I have to respect: node values can be Integer.MIN_VALUE or MAX_VALUE. If my bounds are ints, the comparison at the extremes breaks. I'll use long bounds so it never overflows.",
+        'Integer overflow at extreme node values — guard it with long bounds.'),
       SAY("I'll use long bounds instead of int, because node values can be right at Integer.MIN or MAX and I don't want the comparison to overflow."),
       I("Nice catch — that's a common bug."),
       S('Code'),
@@ -176,11 +192,14 @@ private boolean valid(TreeNode n, long low, long high) {
     return valid(n.left,  low, n.val)                  // left:  high := n.val
         && valid(n.right, n.val, high);                // right: low  := n.val
 }`),
-      TH("Left child inherits my value as its new upper bound; right child inherits it as its new lower bound. Both subtrees must pass — that's the &&."),
+      TH("Left child inherits my value as its new upper bound; right child inherits it as its new lower bound. Both subtrees must pass — that's the &&.",
+        'Propagating bounds down: tighten high going left, low going right; both subtrees must hold.'),
       S('Test'),
       SAY("Let me trace [5,1,4,null,null,3,6] — that 4 sits in 5's right subtree, but 4 < 5, so it should be invalid."),
-      TH("valid(4, low=5, high=+∞): is 5 < 4? No. The lower bound rejects it immediately, returns false. The bounds caught what a parent-only check would have missed. Good."),
-      I("Complexity?"),
+      TH("valid(4, low=5, high=+∞): is 5 < 4? No. The lower bound rejects it immediately, returns false. The bounds caught what a parent-only check would have missed. Good.",
+        'The propagated bound catches a violator that a parent-only check would wrongly accept.'),
+      I("Complexity?",
+        'State and justify time and space.'),
       SAY("O(n) time, O(h) space."),
       I("Solid — you hit both the range insight and the overflow. That's the full answer."),
     ],
@@ -195,15 +214,20 @@ private boolean valid(TreeNode n, long low, long high) {
     prompt: 'Given the root of a binary tree, imagine standing on its right side. Return the values of the nodes you can see, ordered top to bottom.',
     beats: [
       S('The prompt'),
-      I("Last one, Alex. Imagine standing on the right side of a binary tree — return the values of the nodes you can see, top to bottom."),
-      TH("What can I actually see from the right? Only the rightmost node on each level; everything behind it is hidden. So the answer is: the last node of every level."),
+      I("Last one, Alex. Imagine standing on the right side of a binary tree — return the values of the nodes you can see, top to bottom.",
+        'Can you translate a vivid word-picture ("right side") into a precise rule.'),
+      TH("What can I actually see from the right? Only the rightmost node on each level; everything behind it is hidden. So the answer is: the last node of every level.",
+        'Translating "right side view" into a precise rule: the rightmost node of each level.'),
       SAY("So essentially I want one value per level — the rightmost node at each depth, from the top down?"),
       I("Exactly right."),
-      TH("Processing level by level is the natural fit — that's BFS with a queue. I walk one full level and grab the last node I see on it."),
+      TH("Processing level by level is the natural fit — that's BFS with a queue. I walk one full level and grab the last node I see on it.",
+        'Level-by-level processing maps to breadth-first search with a queue.'),
       S('Approach'),
       SAY("I'll do a level-order BFS. For each level I snapshot how many nodes are currently in the queue, then pop exactly that many; the last one I pop on the level is the rightmost, so I record it."),
-      I("Sounds right. Any pitfalls you want to avoid?"),
-      TH("Yes — I've been burned by two here. One: read size = queue.size() BEFORE the inner loop, because I'm enqueueing children into the same queue as I go. Two: the loop has to cover the whole level — i from 0 while i < size — or I skip a node, the queue never drains, and it spins forever."),
+      I("Sounds right. Any pitfalls you want to avoid?",
+        'Do you anticipate the classic BFS bugs before they bite — level-size snapshot and loop bounds.'),
+      TH("Yes — I've been burned by two here. One: read size = queue.size() BEFORE the inner loop, because I'm enqueueing children into the same queue as I go. Two: the loop has to cover the whole level — i from 0 while i < size — or I skip a node, the queue never drains, and it spins forever.",
+        'The two BFS-by-level pitfalls: snapshot the size first, and iterate the full level (off-by-one → TLE).'),
       SAY("Two, actually. I have to snapshot the level size before the loop, since I'm adding children to the same queue. And I have to iterate the full level from 0 to size — an off-by-one there would skip a node and could loop forever."),
       I("Great awareness. Let's see it."),
       S('Code'),
@@ -223,11 +247,14 @@ private boolean valid(TreeNode n, long low, long high) {
     }
     return res;
 }`),
-      TH("Enqueue left then right, so within a level the queue stays left-to-right and the last poll really is the rightmost. Record only when i == size - 1."),
+      TH("Enqueue left then right, so within a level the queue stays left-to-right and the last poll really is the rightmost. Record only when i == size - 1.",
+        'Enqueue order (L then R) makes the final poll of a level the rightmost node.'),
       S('Test'),
       SAY("Trace [1,2,3,null,5,null,4]. Levels are [1], then [2,3], then [5,4]. Rightmost of each: 1, 3, 4."),
-      TH("On level [2,3]: poll 2 at i=0, enqueue its child 5; poll 3 at i=1 which equals size-1, so record 3 and enqueue its child 4. Result builds to [1,3,4]. Correct."),
-      I("Complexity?"),
+      TH("On level [2,3]: poll 2 at i=0, enqueue its child 5; poll 3 at i=1 which equals size-1, so record 3 and enqueue its child 4. Result builds to [1,3,4]. Correct.",
+        'Dry-running the loop confirms one rightmost value is captured per level.'),
+      I("Complexity?",
+        'State and justify time and space.'),
       SAY("O(n) time — each node enqueued and polled once. O(n) space for the queue, which can hold up to a full level."),
       I("That's a strong finish. Well done."),
     ],

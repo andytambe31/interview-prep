@@ -180,9 +180,9 @@ export default function Coding() {
                               <button
                                 onClick={() => goQuestion(p.id)}
                                 className="pill bg-clay-500 text-white hover:bg-clay-600"
-                                title="A guided interview walk-through is available"
+                                title="Watch a fictional interview for this problem"
                               >
-                                ✦ Walk-through
+                                ▶ Interview sim
                               </button>
                             )}
                           </span>

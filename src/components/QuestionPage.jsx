@@ -11,6 +11,7 @@ export default function QuestionPage({ id, onBack }) {
   const { state, dispatch } = useStore()
   const problem = state.coding.problems.find((p) => p.id === id)
   const mindset = mindsetFor(id)
+  const [showSim, setShowSim] = useState(false)
 
   const title = mindset?.title || problem?.title || 'Question'
   const difficulty = problem?.difficulty || mindset?.difficulty
@@ -44,16 +45,37 @@ export default function QuestionPage({ id, onBack }) {
             className="pill border border-line bg-surface text-ink hover:bg-paper"
             onClick={() => dispatch({ type: 'SET_UI', patch: { rehearseSession: { kind: 'coding', id, title } } })}
           >
-            Rehearse this problem →
+            Rehearse it yourself →
           </button>
         </div>
       </header>
 
+      {/* Interview simulation — gated behind a button */}
       {mindset ? (
-        <Transcript mindset={mindset} />
+        <div className="rounded-2xl border border-clay-200 bg-clay-50/40 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="max-w-prose">
+              <div className="kicker mb-1 text-clay-700">Interview simulation</div>
+              <p className="text-[15px] leading-relaxed text-ink/90">
+                Watch a fictional candidate, {mindset.cast?.candidate || 'the candidate'}, work this exact problem with an
+                interviewer — every spoken line, and the thoughts in between.
+              </p>
+            </div>
+            {!showSim && (
+              <button className="btn-primary shrink-0 px-4 text-sm" onClick={() => setShowSim(true)}>
+                ▶ See the interview simulation
+              </button>
+            )}
+          </div>
+          {showSim && (
+            <div className="mt-5">
+              <Transcript mindset={mindset} onHide={() => setShowSim(false)} />
+            </div>
+          )}
+        </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-line bg-surface/50 p-6 text-sm text-muted">
-          A guided interview walk-through for this problem isn’t written yet. In the meantime, study the pattern below or run a full rehearsal.
+          An interview simulation for this problem isn’t written yet. In the meantime, study the pattern below or run a full rehearsal.
         </div>
       )}
 
@@ -83,8 +105,9 @@ export default function QuestionPage({ id, onBack }) {
   )
 }
 
-function Transcript({ mindset }) {
+function Transcript({ mindset, onHide }) {
   const beats = mindset.beats
+  const cast = mindset.cast || { interviewer: 'Interviewer', candidate: 'Candidate' }
   const [stepMode, setStepMode] = useState(false)
   const [revealed, setRevealed] = useState(beats.length) // full by default
   const lastRef = useRef(null)
@@ -103,7 +126,6 @@ function Transcript({ mindset }) {
   const enterFull = () => { setStepMode(false); setRevealed(beats.length) }
   const next = () => setRevealed((r) => Math.min(beats.length, r + 1))
 
-  // Auto-scroll to the newest beat while stepping.
   useEffect(() => {
     if (stepMode) lastRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [revealed, stepMode])
@@ -113,19 +135,24 @@ function Transcript({ mindset }) {
 
   return (
     <div>
-      {/* Mode toggle */}
+      {/* Cast + mode toggle */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="kicker mr-1">Interview mindset</span>
+        <span className="text-sm text-muted">
+          <span className="font-medium text-ink">{cast.interviewer}</span> (interviewer) ·{' '}
+          <span className="font-medium text-ink">{cast.candidate}</span> (candidate)
+        </span>
+        <span className="mx-1 text-faint">·</span>
         <button className={stepMode ? 'pill border border-line bg-surface text-muted' : 'pill bg-clay-500 text-white'} onClick={enterFull}>
-          Full transcript
+          Full script
         </button>
         <button className={stepMode ? 'pill bg-clay-500 text-white' : 'pill border border-line bg-surface text-muted'} onClick={enterStep}>
           Step through
         </button>
+        {onHide && (
+          <button className="btn-quiet ml-auto px-2 text-xs" onClick={onHide}>Hide</button>
+        )}
         {stepMode && (
-          <span className="ml-auto text-xs text-faint">
-            {Math.min(revealed, beats.length)} / {beats.length} beats
-          </span>
+          <span className="w-full text-xs text-faint">{Math.min(revealed, beats.length)} / {beats.length} lines</span>
         )}
       </div>
 
@@ -133,19 +160,19 @@ function Transcript({ mindset }) {
         <div className="space-y-3">
           {shown.map((b, i) => (
             <div key={i} ref={i === shown.length - 1 ? lastRef : null}>
-              <Beat beat={b} thoughtNo={thoughtIndex.map.get(i)} thoughtTotal={thoughtIndex.total} />
+              <Beat beat={b} cast={cast} thoughtNo={thoughtIndex.map.get(i)} thoughtTotal={thoughtIndex.total} />
             </div>
           ))}
         </div>
 
         {stepMode && !done && (
           <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
-            <button className="btn-primary px-4 text-sm" onClick={next}>Next →</button>
+            <button className="btn-primary px-4 text-sm" onClick={next}>Next line →</button>
             <button className="btn-quiet px-3 text-sm" onClick={enterFull}>Reveal all</button>
           </div>
         )}
         {stepMode && done && (
-          <div className="mt-5 border-t border-line pt-4 text-sm text-muted">That’s the full thought process, end to end. ✓</div>
+          <div className="mt-5 border-t border-line pt-4 text-sm text-muted">That’s the whole conversation, end to end. ✓</div>
         )}
       </div>
 
@@ -160,7 +187,7 @@ function Transcript({ mindset }) {
   )
 }
 
-function Beat({ beat, thoughtNo, thoughtTotal }) {
+function Beat({ beat, cast, thoughtNo, thoughtTotal }) {
   if (beat.t === 'stage') {
     return (
       <div className="flex items-center gap-3 pt-3 first:pt-0">
@@ -171,36 +198,39 @@ function Beat({ beat, thoughtNo, thoughtTotal }) {
   }
   if (beat.t === 'interviewer') {
     return (
-      <div className="rounded-xl bg-paper px-4 py-2.5">
-        <div className="kicker mb-0.5 text-faint">Interviewer</div>
-        <p className="text-[15px] leading-relaxed text-ink/90">{beat.text}</p>
+      <div className="flex gap-3">
+        <span className="w-16 shrink-0 pt-0.5 text-right text-sm font-semibold text-ink/70">{cast.interviewer}</span>
+        <p className="flex-1 text-[15px] leading-relaxed text-ink/90">{beat.text}</p>
       </div>
     )
   }
   if (beat.t === 'say') {
     return (
-      <div className="rounded-xl border border-sage-200 bg-sage-50/60 px-4 py-2.5">
-        <div className="kicker mb-0.5 text-sage-600">You — out loud</div>
-        <p className="text-[15px] leading-relaxed text-ink/90">{beat.text}</p>
+      <div className="flex gap-3">
+        <span className="w-16 shrink-0 pt-0.5 text-right text-sm font-semibold text-clay-600">{cast.candidate}</span>
+        <p className="flex-1 text-[15px] leading-relaxed text-ink">{beat.text}</p>
       </div>
     )
   }
   if (beat.t === 'think') {
     return (
-      <div className="rounded-xl border border-clay-200 bg-clay-50 px-4 py-2.5">
-        <div className="kicker mb-0.5 flex items-center gap-1.5 text-clay-700">
-          <span>💭 Thinking</span>
-          {thoughtNo && <span className="text-clay-500/70">· thought {thoughtNo} of {thoughtTotal}</span>}
+      <div className="flex gap-3">
+        <span className="w-16 shrink-0 pt-0.5 text-right text-xs font-medium text-clay-500/80">💭</span>
+        <div className="flex-1 rounded-xl border border-clay-200 bg-clay-50 px-4 py-2.5">
+          <div className="kicker mb-0.5 text-clay-700">
+            {cast.candidate} thinks
+            {thoughtNo && <span className="ml-1 text-clay-500/70">· {thoughtNo} of {thoughtTotal}</span>}
+          </div>
+          <p className="text-[15px] italic leading-relaxed text-clay-900">{beat.text}</p>
         </div>
-        <p className="text-[15px] italic leading-relaxed text-clay-900">{beat.text}</p>
       </div>
     )
   }
   if (beat.t === 'code') {
     return (
-      <div>
-        <div className="kicker mb-1 text-faint">Writing</div>
-        <pre className="overflow-x-auto rounded-lg border border-line bg-paper p-3 font-mono text-[12.5px] leading-snug text-ink/85">
+      <div className="flex gap-3">
+        <span className="w-16 shrink-0 pt-1 text-right text-xs font-medium text-faint">{cast.candidate} types</span>
+        <pre className="flex-1 overflow-x-auto rounded-lg border border-line bg-paper p-3 font-mono text-[12.5px] leading-snug text-ink/85">
           {beat.text}
         </pre>
       </div>

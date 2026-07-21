@@ -822,6 +822,73 @@ private int findBound(int[] nums, int target, boolean first) {
     ],
     takeaway: 'Duplicates and you need a boundary index? Binary search twice, biased: on equality don\'t return — keep moving toward the boundary (left for first, right for last), remembering the last hit. Never find-one-then-scan; a run of duplicates makes that O(n).',
   },
+
+  // ---------------------------------------------------------------------
+  'successful-pairs-of-spells-and-potions': {
+    title: 'Successful Pairs of Spells and Potions',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Given arrays spells[] and potions[] of positive integers and an integer success, a pair is successful if spell × potion ≥ success. For each spell, return how many potions form a successful pair.',
+    beats: [
+      S('The prompt'),
+      I("You have an array of spells and an array of potions, plus a value called success. A spell-potion pair works if the product of their strengths is at least success. For each spell, return how many potions it can pair with successfully.",
+        'Whether you turn a pairing/product condition into a sorted-array + binary-search problem.'),
+      TH("Brute force is obvious: for every spell, scan every potion and count the products ≥ success. That's O(n·m). If both arrays are large, that's too slow — the phrasing 'for each spell, count potions' smells like sort-one-and-binary-search-the-other.",
+        'Brute force is O(n·m); "for each X, count qualifying Y" hints at a log factor.'),
+      SAY("Two quick constraint questions: how large are the arrays, and can the product spell × potion overflow a 32-bit int?"),
+      I("Both arrays can be up to 10^5, and strengths up to 10^5 — so yes, the product can blow past int range.",
+        'Are you thinking about overflow before writing the comparison.'),
+      TH("Product up to 1e5 × 1e5 = 1e10, which overflows int. I must compute spell × potion as a long. Flagging that now so I don't write a silent bug.",
+        'spell × potion can reach 1e10 → compute the product as long, not int.'),
+      TH("The optimization: for a fixed spell s, a potion p works iff s·p ≥ success. If I SORT the potions, then once a potion is strong enough, every potion to its right also works — the condition is monotonic. So I binary search for the first potion that's strong enough, and the count is (m − that index).",
+        'After sorting potions, "qualifies" is monotonic, so the qualifiers are a suffix.'),
+      S('Approach'),
+      SAY("I'll sort potions once. Then for each spell I binary search for the left-most index where spell × potion ≥ success. If that index is i, then m − i potions qualify."),
+      I("Be precise — what exactly are you binary searching for?",
+        'Can you state the search target exactly (the leftmost qualifying potion).'),
+      SAY("For a given spell, I search the sorted potions for the left-most index where (long) spell × potions[index] ≥ success — the left boundary of the qualifying suffix. Everything from there to the end counts."),
+      I("Do you need a threshold like success / spell, or can you avoid the division?",
+        'Do you avoid floating-point division and its rounding pitfalls.'),
+      TH("I could compute threshold = ceil(success / spell) and search for potions ≥ threshold, but integer ceiling is fiddly and floating-point division risks rounding bugs. Cleaner: binary search comparing the long product directly against success — no division at all.",
+        'Comparing the long product directly dodges floating-point ceil/rounding bugs.'),
+      SAY("I'll avoid division entirely — I compare the long product against success inside the binary search, so there's no ceil or rounding to get wrong."),
+      I("Good. Let's see it."),
+      S('Code'),
+      CODE(`public int[] successfulPairs(int[] spells, int[] potions, long success) {
+    Arrays.sort(potions);
+    int m = potions.length;
+    int[] ans = new int[spells.length];
+    for (int i = 0; i < spells.length; i++) {
+        long spell = spells[i];               // long → product won't overflow
+        int left = 0, right = m;              // half-open: left-most template
+        while (left < right) {
+            int mid = left + (right - left) / 2;
+            if (spell * potions[mid] >= success) right = mid;   // qualifies → look left
+            else                                 left  = mid + 1;
+        }
+        ans[i] = m - left;                    // potions[left .. m-1] all qualify
+    }
+    return ans;
+}`),
+      TH("This is exactly the left-most-insertion-point template: when the product qualifies I move right = mid (this one works, but maybe an earlier one does too); otherwise left = mid + 1. left lands on the first qualifying potion, so m − left is the count.",
+        'Left-most insertion-point template: qualifying → shrink right; else raise left.'),
+      S('Test'),
+      SAY("spells = [5,1,3], potions = [1,2,3,4,5], success = 7. Spell 5: first potion with 5·p ≥ 7 is p=2 at index 1 → 5 − 1 = 4. Spell 1: needs p ≥ 7, none → 0. Spell 3: 3·p ≥ 7 means p ≥ 3, index 2 → 5 − 2 = 3. Answer [4,0,3]."),
+      I("Complexity?",
+        'State and justify — include the sort.'),
+      SAY("Sorting potions is O(m log m). Then n binary searches at O(log m) each → O(n log m). Total O((n + m) log m). Space is O(m) for the sort, O(1) beyond the output otherwise."),
+      I("That's it — sort one array, binary search it once per element of the other. It's a pattern you'll reuse constantly."),
+    ],
+    rubric: [
+      'Recognized brute force is O(n·m) and the sizes demand better',
+      'Flagged product overflow → compute spell × potion as long',
+      'Insight: sort potions so "qualifies" is monotonic (qualifiers form a suffix)',
+      'Binary searched the left-most qualifying potion; count = m − index',
+      'Avoided floating-point division (compared the long product directly)',
+      'Stated O((n + m) log m) time',
+    ],
+    takeaway: '"For each X, count the Ys satisfying a product/threshold condition" → sort the Ys, then binary search per X. Compare the product in long instead of dividing — that sidesteps both overflow and rounding. The count of qualifiers is m − leftmostQualifyingIndex, using the very same left-most insertion-point template.',
+  },
 }
 
 export function mindsetFor(id) {

@@ -889,6 +889,83 @@ private int findBound(int[] nums, int target, boolean first) {
     ],
     takeaway: '"For each X, count the Ys satisfying a product/threshold condition" → sort the Ys, then binary search per X. Compare the product in long instead of dividing — that sidesteps both overflow and rounding. The count of qualifiers is m − leftmostQualifyingIndex, using the very same left-most insertion-point template.',
   },
+
+  // ---------------------------------------------------------------------
+  'longest-subsequence-with-limited-sum': {
+    title: 'Longest Subsequence With Limited Sum',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Given nums[] and queries[], for each query return the maximum size of a subsequence of nums whose element sum is ≤ that query value. Queries are independent.',
+    beats: [
+      S('The prompt'),
+      I("For each query you get a budget, and you want the maximum NUMBER of elements you can take from nums — as a subsequence — whose sum stays within that budget. There are many queries. For nums [4,5,2,1] and query 3, the answer is 2, taking [2,1].",
+        'Whether you notice a subsequence sum ignores order, which unlocks a greedy choice.'),
+      TH("Subsequence means I keep the original order — but order has no effect on the SUM. So really I'm choosing a subset, and I want the most elements with sum ≤ budget. To fit the most elements under a fixed budget, I should take the SMALLEST ones first. That's a greedy sort.",
+        'Sum ignores order → to maximize the count under a budget, take the smallest elements first.'),
+      SAY("Let me confirm: all elements are positive, 'subsequence' is effectively any subset here since order doesn't change the sum, and each query is answered independently?"),
+      I("Correct — all positive, order is irrelevant to the sum, and queries are independent.",
+        'Are you confirming positivity — that is exactly what keeps prefix sums monotonic.'),
+      TH("Positivity is the load-bearing detail: it makes the prefix sums strictly increasing, which is what lets me binary search them. With negatives or zeros that monotonicity would break.",
+        'All-positive values make the prefix sums increasing → binary-searchable.'),
+      S('Approach'),
+      SAY("Plan: sort nums ascending, then build a prefix-sum array where prefix[k] is the sum of the k smallest elements. Each query then becomes 'what's the largest k with prefix[k] ≤ budget?' — and since prefix is increasing, that's a binary search per query."),
+      I("Why precompute the prefix sums instead of just summing per query?",
+        'Do you see that m queries force you to preprocess once rather than re-sum each time.'),
+      TH("With up to 1000 queries, re-summing per query is O(n) each → O(n·m). Prefix sums cost O(n) once, then every query is O(log n). Classic preprocess-once, answer-many.",
+        'Preprocess prefix sums once so each of m queries is O(log n), not O(n).'),
+      SAY("Because there are many queries — re-summing per query is O(n·m). I build prefix sums once, then each query is a O(log n) binary search."),
+      I("What exactly are you binary searching for — and which template?",
+        'Can you state the search target and map it to a template you know.'),
+      TH("I want the largest k with prefix[k] ≤ q. With my one 'find first true' template, I search for the first k where prefix[k] > q — the first prefix that BUSTS the budget — and the answer is left − 1. That's the maximum flip: find the first infeasible, take left − 1.",
+        'Greedy-maximum via the unified template: first k with prefix[k] > q, answer = left − 1.'),
+      SAY("I'll use my standard template to find the first k where prefix[k] > q — the first over-budget prefix — and the answer is left − 1, the largest k that still fits."),
+      I("Any overflow concern on the prefix sums?",
+        'Did you bound the maximum prefix sum against int range.'),
+      TH("n ≤ 1000 and nums[i] ≤ 1e6, so the max prefix sum is about 1e9 — just under int's ~2.1e9 limit. It fits in int, but it's close, so I'll use long as the safe habit.",
+        'Max prefix ≈ 1000 × 1e6 = 1e9 < 2.1e9, so int holds — long is the safe default.'),
+      SAY("The max prefix sum is around 1e9, just under int's limit, so int works — but I'll use long to be safe."),
+      I("Good instincts. Let's see it."),
+      S('Code'),
+      CODE(`public int[] answerQueries(int[] nums, int[] queries) {
+    Arrays.sort(nums);                       // smallest elements first
+    int n = nums.length;
+    long[] prefix = new long[n + 1];         // prefix[k] = sum of k smallest
+    for (int i = 0; i < n; i++) prefix[i + 1] = prefix[i] + nums[i];
+
+    int[] ans = new int[queries.length];
+    for (int i = 0; i < queries.length; i++) {
+        long q = queries[i];
+        int left = 0, right = n + 1;         // search k over [0, n]
+        while (left < right) {               // first k with prefix[k] > q
+            int mid = left + (right - left) / 2;
+            if (prefix[mid] > q) right = mid;
+            else                 left  = mid + 1;
+        }
+        ans[i] = left - 1;                    // largest k that fits the budget
+    }
+    return ans;
+}`),
+      TH("prefix has length n+1 with prefix[0] = 0 (taking zero elements), and I search k over [0, n], so the answer can be anywhere from 0 up to n.",
+        'prefix[0] = 0 (empty pick); searching k over [0, n] makes every answer 0..n reachable.'),
+      S('Test'),
+      SAY("nums [4,5,2,1] → sorted [1,2,4,5], prefix [0,1,3,7,12]. Query 3: first prefix > 3 is prefix[3]=7, left=3, answer 3 − 1 = 2. Query 10: first > 10 is prefix[4]=12, left=4, answer 3. Query 21: nothing exceeds, left=5, answer 4. → [2,3,4]."),
+      TH("Sanity on example 2: nums [2,3,4,5], prefix [0,2,5,9,14], query 1 → first prefix > 1 is prefix[1]=2, left=1, answer 0. The empty subsequence, correct — the prefix[0]=0 base makes that fall out for free.",
+        'The prefix[0] = 0 base makes the empty-subsequence answer (0) come out naturally.'),
+      I("Complexity?",
+        'State and justify, separating preprocessing from per-query cost.'),
+      SAY("Sorting is O(n log n), building prefix O(n). Then m queries at O(log n) each → O(m log n). Total O((n + m) log n), with O(n) extra space for the prefix array."),
+      I("Exactly right — sort, prefix, binary search per query. It's the classic 'offline queries' shape, and you nailed the greedy-plus-monotonic reasoning."),
+    ],
+    rubric: [
+      'Saw that a subsequence sum ignores order → take the smallest elements first',
+      'Noted all-positive → prefix sums are increasing → binary-searchable',
+      'Preprocessed prefix sums once (avoids O(n·m) re-summing across queries)',
+      'Binary searched each query for the largest k with prefix[k] ≤ q (first over-budget, answer left − 1)',
+      'Handled prefix[0]=0 / empty subsequence and the int-vs-long bound',
+      'Stated O((n + m) log n) time and O(n) space',
+    ],
+    takeaway: 'Many queries + "max count under a budget" → sort, prefix-sum, binary search per query. The sum ignores order so greedily take the smallest; positivity makes the prefixes monotonic. It is the greedy-maximum use of the one template: find the first prefix that busts the budget, answer = left − 1. Preprocess once, answer each query in O(log n).',
+  },
 }
 
 export function mindsetFor(id) {

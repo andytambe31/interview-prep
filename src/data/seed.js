@@ -220,6 +220,7 @@ const AMAZON_EXTRA = [
   ['Capacity To Ship Packages Within D Days', 'Binary Search', 'Medium'],
   ['Successful Pairs of Spells and Potions', 'Binary Search', 'Medium'],
   ['Find K Closest Elements', 'Binary Search', 'Medium'],
+  ['Longest Subsequence With Limited Sum', 'Binary Search', 'Medium'],
   ['Split Array Largest Sum', 'Binary Search', 'Hard'],
   ['Search Suggestions System', 'Tries', 'Medium'],
   ['Concatenated Words', 'Tries', 'Hard'],

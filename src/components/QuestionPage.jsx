@@ -44,6 +44,13 @@ export default function QuestionPage({ id, onBack }) {
         </div>
       </header>
 
+      {/* Score yourself — attempt first, tick what you covered, then reveal Alex */}
+      {mindset?.rubric && problem && (
+        <div className="mb-5">
+          <Scorecard problem={problem} rubric={mindset.rubric} dispatch={dispatch} candidate={mindset.cast?.candidate || 'Alex'} />
+        </div>
+      )}
+
       {/* Interview simulation — gated behind a button */}
       {mindset ? (
         <div className="rounded-2xl border border-clay-200 bg-clay-50/40 p-5">
@@ -95,6 +102,78 @@ export default function QuestionPage({ id, onBack }) {
           />
         </div>
       )}
+    </div>
+  )
+}
+
+function Scorecard({ problem, rubric, dispatch, candidate }) {
+  const practice = problem.practice || { checked: {} }
+  const checked = practice.checked || {}
+  const total = rubric.length
+  const hit = rubric.reduce((n, _, i) => n + (checked[i] ? 1 : 0), 0)
+  const pct = total ? Math.round((hit / total) * 100) : 0
+
+  const toggle = (i) => {
+    const next = { ...checked, [i]: !checked[i] }
+    dispatch({ type: 'UPDATE_PROBLEM', id: problem.id, patch: { practice: { ...practice, checked: next } } })
+  }
+  const reset = () =>
+    dispatch({ type: 'UPDATE_PROBLEM', id: problem.id, patch: { practice: { ...practice, checked: {} } } })
+
+  const verdict =
+    hit === 0
+      ? 'Attempt it out loud first, then tick what you covered.'
+      : hit === total
+        ? '★ Full marks — interview-ready on this one.'
+        : hit >= Math.ceil(total * 0.7)
+          ? 'Solid — close the gaps you left unticked.'
+          : hit >= Math.ceil(total * 0.4)
+            ? 'Getting there — a few key beats are missing.'
+            : `Shaky — read ${candidate}’s answer below, then try again.`
+
+  return (
+    <div className="rounded-2xl border border-sage-200 bg-sage-50/40 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-w-prose">
+          <div className="kicker mb-1 text-sage-700">Score yourself</div>
+          <p className="text-[15px] leading-relaxed text-ink/90">
+            Answer the question out loud or on paper first. Then tick every point you actually covered — that’s your
+            score. Reveal how {candidate} answered below to check yourself.
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="font-serif text-3xl leading-none text-sage-700">
+            {hit}
+            <span className="text-lg text-faint"> / {total}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-line">
+        <div className="h-full rounded-full bg-sage-500 transition-all duration-300" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-sm text-sage-700">{verdict}</span>
+        {hit > 0 && (
+          <button className="btn-quiet px-2 text-xs" onClick={reset}>Reset</button>
+        )}
+      </div>
+
+      <ul className="mt-4 space-y-2">
+        {rubric.map((pt, i) => (
+          <li key={i}>
+            <label className="flex cursor-pointer items-start gap-2.5 text-[15px] leading-relaxed">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 accent-sage-500"
+                checked={!!checked[i]}
+                onChange={() => toggle(i)}
+              />
+              <span className={checked[i] ? 'text-ink/90 line-through decoration-sage-400/60' : 'text-muted'}>{pt}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

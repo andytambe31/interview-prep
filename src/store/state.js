@@ -15,7 +15,7 @@ export const STATE_VERSION = 1
 // Fields on each entity that belong to the USER (progress) and must survive
 // a re-sync of seed reference content.
 const USER_FIELDS = {
-  problem: ['status', 'confidence', 'notes', 'lastPracticed'],
+  problem: ['status', 'confidence', 'notes', 'lastPracticed', 'practice'],
   lp: ['confidence', 'notes'],
 }
 

@@ -65,6 +65,8 @@ const HIGH = new Set([
   // Amazon-signature extras
   'Reorder Data in Log Files', 'Critical Connections in a Network', 'Search Suggestions System',
   'Top K Frequent Words', 'Fruit Into Baskets', 'Reorganize String', 'Binary Tree Vertical Order Traversal',
+  'Capacity To Ship Packages Within D Days', 'Find First and Last Position of Element in Sorted Array',
+  'Find Peak Element',
 ])
 const MED = new Set([
   'Valid Anagram', 'Contains Duplicate', 'Top K Frequent Elements', 'Encode and Decode Strings',
@@ -210,6 +212,15 @@ const AMAZON_EXTRA = [
   ['All Nodes Distance K in Binary Tree', 'Trees', 'Medium'],
   ['Path Sum', 'Trees', 'Easy'],
   ['Path Sum II', 'Trees', 'Medium'],
+  // Binary Search — Amazon-asked, beyond the NeetCode set
+  ['Search Insert Position', 'Binary Search', 'Easy'],
+  ['First Bad Version', 'Binary Search', 'Easy'],
+  ['Find First and Last Position of Element in Sorted Array', 'Binary Search', 'Medium'],
+  ['Find Peak Element', 'Binary Search', 'Medium'],
+  ['Capacity To Ship Packages Within D Days', 'Binary Search', 'Medium'],
+  ['Successful Pairs of Spells and Potions', 'Binary Search', 'Medium'],
+  ['Find K Closest Elements', 'Binary Search', 'Medium'],
+  ['Split Array Largest Sum', 'Binary Search', 'Hard'],
   ['Search Suggestions System', 'Tries', 'Medium'],
   ['Concatenated Words', 'Tries', 'Hard'],
   ['Critical Connections in a Network', 'Graphs', 'Hard'],

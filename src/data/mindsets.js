@@ -104,7 +104,8 @@ const MINDSETS = {
       S('Test'),
       SAY("Trace [4,2,7,1,3,6,9]. I'd expect [4,7,2,9,6,3,1] back."),
       TH("At the root, the (2,1,3) subtree and the (7,6,9) subtree swap sides, and each has already mirrored internally. That matches the expected output."),
-      I("Complexity?"),
+      I("Complexity?",
+        'State and justify time and space.'),
       SAY("O(n) time, O(h) space for the recursion stack."),
       I("Clean. Let's move on."),
     ],
@@ -564,6 +565,262 @@ private boolean valid(TreeNode n, long low, long high) {
       'Traced a concrete example; stated O(n) time and O(n) space',
     ],
     takeaway: 'Vertical order = give each node a column (root 0, left −1, right +1), group by column, read min→max. Use BFS so the within-column order (top-to-bottom, left-to-right) comes for free — DFS would force a sort by row. Track min/max to read columns without sorting the keys.',
+  },
+
+  // ---------------------------------------------------------------------
+  'binary-search': {
+    title: 'Binary Search',
+    difficulty: 'Easy',
+    cast: CAST,
+    prompt: 'Given a sorted (ascending) array of integers nums and an integer target, return the index of target if it exists, otherwise return -1. Do it in O(log n).',
+    beats: [
+      S('The prompt'),
+      I("Let's start with the fundamental one. You've got an array sorted in ascending order and a target — return the index of the target, or −1 if it's not there. I'd like O(log n).",
+        'Whether you have the canonical template down cold and know why it is O(log n).'),
+      TH("Sorted array, find an index, O(log n) — this is textbook binary search. Because it's sorted, I can throw away half the search space at every step.",
+        'A sorted array + search + O(log n) = binary search, halving the space each step.'),
+      SAY("Since it's sorted I'll binary search. Are the values distinct, or could there be duplicates I need to account for here?"),
+      I("Assume distinct for this one."),
+      TH("Good — plain template then, no leftmost/rightmost variant needed.",
+        'Distinct values → the plain template, not the boundary-finding variant.'),
+      S('Approach'),
+      SAY("I'll keep two inclusive bounds, left and right, over the whole array. Each step I look at the middle: if it's the target I'm done; if it's too big I discard the right half; too small, discard the left half. Loop while left <= right."),
+      I("Quick one — how are you computing the middle index? Any concern there?",
+        'Do you know the mid-computation overflow pitfall.'),
+      TH("If I write (left + right) / 2, for very large indices left + right can overflow int. The safe form is left + (right − left) / 2 — same value, but it never exceeds right.",
+        'Compute mid as left + (right − left) / 2 to avoid integer overflow.'),
+      SAY("I'll compute mid as left + (right − left) / 2 rather than (left + right) / 2 — identical result, but it can't overflow on large indices."),
+      I("That's exactly what I wanted to hear. Go on."),
+      S('Code'),
+      CODE(`public int search(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;   // inclusive bounds
+    while (left <= right) {
+        int mid = left + (right - left) / 2; // overflow-safe
+        if (nums[mid] == target) return mid;
+        else if (nums[mid] < target) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}`),
+      TH("Inclusive bounds mean the condition is left <= right, and I move past mid with mid ± 1 — so I never re-examine mid and never get stuck in an infinite loop.",
+        'Inclusive bounds → loop while left <= right, and always move to mid ± 1.'),
+      S('Test'),
+      SAY("nums = [-1,0,3,5,9,12], target 9. left0/right5 → mid2 = 3 < 9, so left = 3. left3/right5 → mid4 = 9 == target, return 4."),
+      I("And if 9 weren't in the array — say target 4? What happens to your pointers?",
+        'Do you know what the pointers mean on a miss (the insertion point).'),
+      TH("The loop exits with left sitting at the index where 4 would be inserted to keep the array sorted. For this problem I return −1, but that insertion-point property is exactly why binary search also solves 'search insert position'.",
+        'On a miss, left lands on the insertion point that keeps the array sorted.'),
+      SAY("It exits with left at the insertion point for 4. Here I just return −1, but that same property solves insert-position problems."),
+      I("Complexity?",
+        'State and justify time and space.'),
+      SAY("O(log n) time — the space halves each step — and O(1) space."),
+      I("Perfect. This template is the backbone of the whole pattern, so keep it razor-sharp."),
+    ],
+    rubric: [
+      'Identified binary search from "sorted + search + O(log n)"',
+      'Used inclusive bounds with the loop while left <= right',
+      'Computed mid overflow-safely as left + (right − left) / 2',
+      'Moved to mid ± 1 (never re-checks mid, no infinite loop)',
+      'Knew a miss leaves left at the insertion point',
+      'Stated O(log n) time and O(1) space',
+    ],
+    takeaway: '704 is the template you copy for everything else — memorize it cold: inclusive bounds, while left <= right, overflow-safe mid = left + (right − left)/2, move to mid ± 1. On a miss, left is the insertion point.',
+  },
+
+  // ---------------------------------------------------------------------
+  'search-in-rotated-sorted-array': {
+    title: 'Search in Rotated Sorted Array',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'A sorted array of distinct integers is rotated at an unknown pivot (e.g. [4,5,6,7,0,1,2]). Given the array and a target, return the target’s index, or -1. Required: O(log n).',
+    beats: [
+      S('The prompt'),
+      I("This one comes up a lot with us. A sorted array of distinct integers has been rotated at some unknown pivot — say [4,5,6,7,0,1,2]. Find the index of a target, and I want O(log n).",
+        'Whether you can still binary-search when the array is not fully sorted — the Amazon-classic twist.'),
+      TH("O(log n) rules out a linear scan — they want binary search, adapted. The array isn't fully sorted anymore, but here's the key property: if I cut at mid, at least ONE of the two halves is always properly sorted.",
+        'In a rotated sorted array, at least one side of mid is always fully sorted.'),
+      SAY("They're distinct, there's a single rotation, and I return −1 if the target's absent — right?"),
+      I("Right on all three."),
+      TH("So each step: figure out which half is sorted, then check whether the target lies inside that sorted half's value range. If it does, search there; if not, search the other half.",
+        'Detect the sorted half, then use its range to decide which side holds the target.'),
+      S('Approach'),
+      SAY("Standard bounds. At each mid I decide which side is sorted: if nums[left] <= nums[mid], the left half is sorted; otherwise the right half is. Then I check whether the target is within the sorted half's range and move accordingly."),
+      I("Walk me through the left-half-sorted case — what exactly is the check?",
+        'Can you state the range condition precisely instead of hand-waving it.'),
+      SAY("If the left half is sorted and nums[left] <= target < nums[mid], the target's in the left half, so right = mid − 1. Otherwise it's in the right half, so left = mid + 1. The right-half-sorted case is symmetric."),
+      I("Why the <= in nums[left] <= nums[mid] — why not a strict <?",
+        'Do you understand the boundary case when the window shrinks to one element.'),
+      TH("When the search space shrinks to a single element, mid == left, so nums[left] == nums[mid]. The <= keeps that case classified as 'left half sorted', which is correct; a strict < could misroute it.",
+        'The <= handles the one-element case where mid == left correctly.'),
+      SAY("When the window is one element, mid equals left so the two are equal — the <= keeps it treated as left-sorted, which is right. A strict < could misclassify that edge."),
+      I("That's the subtle part most people miss. Code it up."),
+      S('Code'),
+      CODE(`public int search(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target) return mid;
+        if (nums[left] <= nums[mid]) {                 // left half sorted
+            if (nums[left] <= target && target < nums[mid]) right = mid - 1;
+            else left = mid + 1;
+        } else {                                        // right half sorted
+            if (nums[mid] < target && target <= nums[right]) left = mid + 1;
+            else right = mid - 1;
+        }
+    }
+    return -1;
+}`),
+      TH("Equality check first. Then classify the sorted half, then make the in-range decision within it. Each step still halves the space, so it stays O(log n).",
+        'Check equality first, then classify the sorted half, then the range decision.'),
+      S('Test'),
+      SAY("[4,5,6,7,0,1,2], target 0. left0/right6 mid3=7; left half [4..7] sorted, is 4<=0<7? no → left=4. left4/right6 mid5=1; left half [0..1] sorted, is 0<=0<1? yes → right=4. left4/right4 mid4=0 == target → index 4."),
+      I("And an absent target like 3?"),
+      SAY("Same logic runs, the window empties without a match, and I return −1."),
+      I("Complexity?",
+        'State and justify time and space.'),
+      SAY("O(log n) time, O(1) space — still halving each step, just with an extra branch."),
+      I("Strong. 'One half is always sorted' is precisely the insight I'm probing for here."),
+    ],
+    rubric: [
+      'Key insight: at any mid, at least one half is fully sorted',
+      'Clarified distinct values, single rotation, −1 if absent',
+      'Detected the sorted half via nums[left] <= nums[mid]',
+      'Correct in-range check to choose the side (nums[left] <= target < nums[mid])',
+      'Handled the <= boundary (one-element / mid == left) case',
+      'Stated O(log n) time and O(1) space',
+    ],
+    takeaway: 'Rotated array + O(log n) = adapt binary search around "one half is always sorted." Each step: find the sorted half, test whether target is inside its range, move accordingly. The <= in the sorted-half test is what makes the shrink-to-one-element case behave.',
+  },
+
+  // ---------------------------------------------------------------------
+  'koko-eating-bananas': {
+    title: 'Koko Eating Bananas',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Koko has piles[] of bananas and h hours. Each hour she picks one pile and eats up to k bananas from it (the rest of that hour is wasted if the pile is smaller). Return the minimum integer speed k so she finishes all piles within h hours.',
+    beats: [
+      S('The prompt'),
+      I("Koko has piles of bananas and h hours before the guards come back. Each hour she picks one pile and eats up to k bananas from it. Find the minimum eating speed k so she finishes all the piles within h hours.",
+        'Whether you spot binary-search-on-the-answer when the array itself is not the search space.'),
+      TH("At first glance this isn't a binary search problem — the piles array isn't what I'm searching, and it isn't even sorted. But think about the speed k: if some speed k lets her finish in time, then any speed faster than k also finishes in time. And if k is too slow, everything slower is too slow. That monotonic behavior is the signal — I can binary search on k itself.",
+        'Binary search on the ANSWER: feasibility of a speed k is monotonic in k.'),
+      SAY("So I'm searching for the smallest feasible speed. The range of k is 1 up to the largest pile, right? Eating faster than the biggest pile can't help, since she only eats from one pile per hour."),
+      I("Exactly — nice bounding. Keep going."),
+      TH("For a candidate speed k, the hours she needs is the sum over piles of ceil(pile / k). If that total is <= h, k is feasible. I want the smallest k where feasible is true — a leftmost-true search.",
+        'For a given k, hours needed = Σ ceil(pile / k); feasible iff that sum ≤ h.'),
+      S('Approach'),
+      SAY("I'll binary search k in [1, max(piles)]. For each mid speed I compute the hours with a helper; if hours <= h the speed works so I try slower (right = mid − 1); otherwise I go faster (left = mid + 1). left ends on the smallest feasible speed."),
+      I("How are you computing ceil(pile / k) — I don't want floating point in here.",
+        'Do you know the integer-ceiling trick and why floats are risky here.'),
+      TH("Integer ceiling of a / b is (a + b − 1) / b. No doubles, no rounding surprises.",
+        'Integer ceiling trick: ceil(pile/k) = (pile + k − 1) / k, no floats.'),
+      SAY("Integer math: ceil(pile / k) is (pile + k − 1) / k."),
+      I("Good. One more — anything about the hours total you should watch?",
+        'Are you alert to integer overflow when summing the hours.'),
+      TH("If there are many large piles, the summed hours could exceed int range. I'll accumulate in a long to be safe.",
+        'Accumulate the hours sum in a long to avoid overflow on large inputs.'),
+      SAY("I'll accumulate the hours in a long, since with many large piles the sum could overflow an int."),
+      I("Careful and correct. Let's see it."),
+      S('Code'),
+      CODE(`public int minEatingSpeed(int[] piles, int h) {
+    int left = 1, right = 0;
+    for (int p : piles) right = Math.max(right, p);   // max pile = fastest useful speed
+    while (left <= right) {
+        int k = left + (right - left) / 2;
+        if (hours(piles, k) <= h) right = k - 1;      // feasible → try slower
+        else                      left  = k + 1;      // too slow → go faster
+    }
+    return left;                                       // smallest feasible speed
+}
+
+private long hours(int[] piles, int k) {
+    long total = 0;
+    for (int p : piles) total += (p + k - 1) / k;      // ceil(p / k)
+    return total;
+}`),
+      TH("This is the leftmost-true template: on feasible I shrink right, so the loop converges to the minimum feasible k, which is what left holds at the end.",
+        'Leftmost-true binary search converges left to the smallest feasible value.'),
+      S('Test'),
+      SAY("piles = [3,6,7,11], h = 8. Range [1,11]. k=4: hours = 1+2+2+3 = 8 <= 8, feasible → try slower. k=3: 1+2+3+4 = 10 > 8, infeasible → faster. Converges to 4."),
+      I("Complexity?",
+        'State and justify time and space.'),
+      SAY("O(n log m), where n is the number of piles and m is the max pile — log m binary-search steps, each an O(n) feasibility check. O(1) extra space."),
+      I("That's the pattern I was fishing for — you searched the answer space, not the array. It shows up constantly in our loops."),
+    ],
+    rubric: [
+      'Recognized binary-search-on-the-answer (feasibility of k is monotonic)',
+      'Set correct bounds: k in [1, max(pile)]',
+      'Wrote a feasibility check: hours = Σ ceil(pile/k) ≤ h',
+      'Used integer ceiling (pile + k − 1)/k, no floating point',
+      'Used the leftmost-true template to return the minimum feasible k',
+      'Guarded overflow (long sum); stated O(n log m) time',
+    ],
+    takeaway: 'When the problem asks for a min/max value and "does value v work?" is monotonic (if v works, everything bigger — or smaller — does too), binary search the ANSWER, not the array: write a boolean feasibility check, then leftmost/rightmost-search the value range. Koko, Capacity to Ship Packages, and Split Array Largest Sum are all this one pattern.',
+  },
+
+  // ---------------------------------------------------------------------
+  'find-first-and-last-position-of-element-in-sorted-array': {
+    title: 'Find First and Last Position of Element in Sorted Array',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Given a sorted array that may contain duplicates and a target, return the first and last index of target as [first, last], or [-1, -1] if it is not present. Required: O(log n).',
+    beats: [
+      S('The prompt'),
+      I("Sorted array again, but this time it can contain duplicates. Return the first and last index of a target value, or [-1, -1] if it's absent. I want O(log n).",
+        'Whether you know the leftmost/rightmost binary-search variant for duplicates.'),
+      TH("Duplicates plus 'first and last index' — a plain binary search finds *some* occurrence but not necessarily a boundary. This is the leftmost/rightmost variant: I binary search twice, once biased toward the left, once toward the right.",
+        'Duplicates + boundary index → two biased binary searches, leftmost and rightmost.'),
+      SAY("I return a two-element array, [-1,-1] if absent. And O(log n) means I can't find one match and scan outward — a big run of duplicates would make that O(n)."),
+      I("Right, scan-outward is the trap. So how do you bias the search toward a boundary?",
+        'Do you know how to make binary search find a boundary, not just any match.'),
+      TH("The twist: when nums[mid] == target, I don't return. For the leftmost search I record the index and keep going left (right = mid − 1) to check for an earlier occurrence. For the rightmost I keep going right (left = mid + 1).",
+        'On a match, keep moving toward the boundary instead of returning.'),
+      SAY("For the first index, on a match I record it and set right = mid − 1 to keep looking left. For the last index, on a match I set left = mid + 1 to keep looking right. Two O(log n) passes."),
+      I("Show me the shared helper — I'd rather you not write the same loop twice.",
+        'Will you factor the two near-identical searches into one parameterized helper.'),
+      TH("Good push — I'll write one findBound(target, firstFlag) that only differs in which direction it walks on a match. Cleaner and less error-prone.",
+        'Factor both searches into one helper that flips direction on a match.'),
+      S('Code'),
+      CODE(`public int[] searchRange(int[] nums, int target) {
+    int first = findBound(nums, target, true);
+    if (first == -1) return new int[]{-1, -1};       // absent → skip 2nd search
+    int last = findBound(nums, target, false);
+    return new int[]{first, last};
+}
+
+private int findBound(int[] nums, int target, boolean first) {
+    int left = 0, right = nums.length - 1, ans = -1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (nums[mid] == target) {
+            ans = mid;                                // remember this hit…
+            if (first) right = mid - 1;               // …keep searching left
+            else       left  = mid + 1;               // …keep searching right
+        } else if (nums[mid] < target) left = mid + 1;
+        else right = mid - 1;
+    }
+    return ans;
+}`),
+      TH("Each pass is the standard template; the only change is that equality drives the search toward the boundary instead of returning immediately.",
+        'The sole difference from plain search: equality pushes toward the boundary.'),
+      S('Test'),
+      SAY("[5,7,7,8,8,10], target 8. The leftmost pass lands on index 3; the rightmost on index 4 → [3,4]."),
+      I("And an absent target, say 6?"),
+      SAY("Neither pass ever records a hit, so first is −1 and I return [-1,-1] — and I skip the second search entirely in that case."),
+      I("Complexity?",
+        'State and justify time and space.'),
+      SAY("Two O(log n) passes → O(log n) time overall, O(1) space."),
+      I("Exactly — biasing the search toward a boundary is the whole idea, and factoring it into one helper is what I like to see."),
+    ],
+    rubric: [
+      'Recognized the leftmost/rightmost variant for duplicates',
+      'Rejected find-one-then-scan (O(n) with many duplicates)',
+      'Leftmost: on a match, record and go left (right = mid − 1)',
+      'Rightmost: on a match, record and go right (left = mid + 1)',
+      'Returned [-1,-1] when absent (and skipped the 2nd pass)',
+      'Stated O(log n) time and O(1) space',
+    ],
+    takeaway: 'Duplicates and you need a boundary index? Binary search twice, biased: on equality don\'t return — keep moving toward the boundary (left for first, right for last), remembering the last hit. Never find-one-then-scan; a run of duplicates makes that O(n).',
   },
 }
 

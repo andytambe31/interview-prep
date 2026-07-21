@@ -239,6 +239,72 @@ private boolean valid(TreeNode n, long low, long high) {
   },
 
   // ---------------------------------------------------------------------
+  'kth-smallest-element-in-a-bst': {
+    title: 'Kth Smallest Element in a BST',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Given the root of a binary search tree and an integer k, return the kth smallest value (1-indexed) among all the node values in the tree.',
+    beats: [
+      S('The prompt'),
+      I("Given a BST and an integer k, return the kth smallest value in the tree, 1-indexed.",
+        'Whether you connect "BST" + "kth smallest" to the inorder-gives-sorted-order fact.'),
+      TH("BST plus 'kth smallest' — the fact that unlocks this is that an inorder traversal of a BST visits nodes in sorted order. So the kth smallest is simply the kth node I visit inorder.",
+        'Inorder traversal of a BST yields values in ascending sorted order.'),
+      SAY("Quick checks: k is 1-indexed, and is it guaranteed 1 ≤ k ≤ number of nodes so I don't have to handle an out-of-range k?"),
+      I("Yes — 1-indexed, and k is always valid."),
+      TH("Good, no bounds handling. Naive approach: do a full inorder into a list, return list[k-1]. That's O(n) time and O(n) space. But I can do better — I don't need the whole sorted list, just the first k values, and I can stop the moment I've counted k.",
+        'I only need the first k of the sorted order, so I can stop early instead of sorting everything.'),
+      S('Approach'),
+      SAY("I'll do an inorder traversal, counting nodes as I visit them, and return the value the moment my count hits k — no need to traverse the rest."),
+      I("Recursive or iterative?",
+        'Do you know that iterative inorder lets you stop cleanly at k without unwinding the whole recursion.'),
+      TH("Recursion is clean, but stopping early mid-recursion is awkward — I'd carry a counter in a field and short-circuit. An explicit stack lets me pop exactly one node at a time and just stop when k hits 0. I'll go iterative.",
+        'An explicit stack makes early termination at k natural; recursion needs a field + short-circuit.'),
+      SAY("I'll use an iterative inorder with a stack so I can stop exactly at k."),
+      I("Go ahead."),
+      TH("The iterative inorder pattern: push the entire left spine, then pop — that popped node is the next smallest. Decrement k; if it hits 0, that's my answer. Otherwise move to the popped node's right child and repeat.",
+        'Iterative inorder: dive left pushing nodes, pop = next smallest, then step into its right subtree.'),
+      S('Code'),
+      CODE(`public int kthSmallest(TreeNode root, int k) {
+    Deque<TreeNode> stack = new ArrayDeque<>();
+    TreeNode node = root;
+    while (node != null || !stack.isEmpty()) {
+        while (node != null) {         // dive to the smallest unvisited
+            stack.push(node);
+            node = node.left;
+        }
+        node = stack.pop();            // next smallest in order
+        if (--k == 0) return node.val; // stop the moment we reach k
+        node = node.right;             // then explore its right subtree
+    }
+    return -1;                         // unreachable when k is valid
+}`),
+      TH("The inner while pushes the whole left spine so the top of the stack is always the smallest unvisited node. After popping I go right, because everything smaller than the right subtree has already been handled.",
+        'Pushing the left spine keeps the smallest unvisited node on top of the stack.'),
+      S('Test'),
+      SAY("Trace [3,1,4,null,2] with k=1. Sorted order is 1,2,3,4."),
+      TH("Push 3, then push 1 (its left); 1.left is null, so pop 1, --k = 0 → return 1. Correct, and I never touched 4. Early stop worked.",
+        'The dry run confirms the traversal stops exactly at k, skipping the rest.'),
+      I("Complexity? And what if the tree is modified often and I query kth smallest a lot?",
+        'Can you state cost precisely, and do you know the augmented-BST follow-up.'),
+      SAY("This is O(H + k) time — I push one left spine (up to the height H) and then pop k times — and O(H) space for the stack. Worst case O(n) on a skewed tree."),
+      TH("The follow-up is the classic one: if there are frequent inserts/deletes and many kth-smallest queries, augment each node with the size of its left subtree. Then each query is O(H): compare k to leftSize+1 to decide go left, this node, or go right with k adjusted.",
+        'Augment nodes with subtree/left counts to answer repeated kth-smallest queries in O(H).'),
+      SAY("For frequent modifications plus many queries, I'd augment each node with its left-subtree size, so each kth-smallest query becomes O(H) without re-traversing — you compare k against leftSize + 1 to decide which way to go."),
+      I("That's exactly the follow-up I was after. Great."),
+    ],
+    rubric: [
+      'Recognized the key fact: BST inorder traversal = sorted order',
+      'Clarified k is 1-indexed and always valid',
+      'Chose inorder, counting to k, and stops early (doesn’t sort the whole tree)',
+      'Used an iterative stack (or recursion) — push left spine, pop = next smallest, then go right',
+      'Stated O(H + k) time and O(H) space',
+      'Named the follow-up: augment nodes with left-subtree size for O(H) repeated queries',
+    ],
+    takeaway: 'For anything "kth / median / sorted-order" on a BST, reach for inorder traversal — it emits values in sorted order. Do it iteratively with a stack so you can stop the instant you hit k. And know the follow-up: augment nodes with subtree sizes to answer repeated order-statistic queries in O(H).',
+  },
+
+  // ---------------------------------------------------------------------
   'binary-tree-right-side-view': {
     title: 'Binary Tree Right Side View',
     difficulty: 'Medium',

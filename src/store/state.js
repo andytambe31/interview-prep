@@ -63,9 +63,12 @@ export function buildInitialState() {
     resumeItems: [],
     // Revision flashcards (seeded + user-added).
     revisionCards: seedRevisionCards.map((c) => ({ ...c })),
+    // Mock-interview rehearsals, keyed by "coding:<id>" / "lld:<id>".
+    // Each: { draft: {...} | null, history: [ attempt, ... ] }.
+    rehearsals: {},
     // Lightweight "have you read/done this" flags for the guided steps.
     checklist: {},
-    ui: { codingTopic: null },
+    ui: { codingTopic: null, rehearseSession: null },
   }
 }
 

@@ -96,6 +96,13 @@ export default function LLD() {
                 </button>
                 <DifficultyBadge level={prob.difficulty} />
                 {t && <ConfidenceDots value={t.confidence} onChange={(v) => dispatch({ type: 'UPDATE_PROBLEM', id: t.id, patch: { confidence: v } })} />}
+                <button
+                  className="btn-quiet px-2 text-sm"
+                  title="Run the full mock-interview flow on this problem"
+                  onClick={() => dispatch({ type: 'SET_UI', patch: { rehearseSession: { kind: 'lld', id: prob.id, title: prob.title } } })}
+                >
+                  Rehearse
+                </button>
                 <button className="btn-quiet px-2 text-sm" onClick={() => setOpen(isOpen ? null : prob.id)}>
                   {isOpen ? 'Hide' : 'Study'}
                 </button>

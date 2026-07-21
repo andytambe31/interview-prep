@@ -5,6 +5,8 @@ import Today from './components/Today.jsx'
 import TheLoop from './components/TheLoop.jsx'
 import Coding from './components/Coding.jsx'
 import LLD from './components/LLD.jsx'
+import Rehearse from './components/Rehearse.jsx'
+import RehearseSession from './components/RehearseSession.jsx'
 import Revision from './components/Revision.jsx'
 import Behavioral from './components/Behavioral.jsx'
 import Resume from './components/Resume.jsx'
@@ -16,6 +18,7 @@ const NAV = [
   { id: 'loop', label: 'The Loop', hint: 'What to expect' },
   { id: 'coding', label: 'Coding', hint: 'DSA problems & patterns' },
   { id: 'lld', label: 'LLD', hint: 'Object-oriented design' },
+  { id: 'rehearse', label: 'Rehearse', hint: 'Mock the full round' },
   { id: 'revision', label: 'Revision', hint: 'Flashcards' },
   { id: 'behavioral', label: 'Behavioral', hint: 'Principles & stories' },
   { id: 'resume', label: 'Résumé', hint: 'Know it cold' },
@@ -40,8 +43,9 @@ function useHashRoute(defaultRoute) {
 }
 
 export default function App() {
-  const { state } = useStore()
+  const { state, dispatch } = useStore()
   const [route, go] = useHashRoute('today')
+  const rehearseSession = state.ui?.rehearseSession
   const [mobileOpen, setMobileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -56,6 +60,8 @@ export default function App() {
         return <Coding />
       case 'lld':
         return <LLD />
+      case 'rehearse':
+        return <Rehearse />
       case 'revision':
         return <Revision />
       case 'behavioral':
@@ -137,6 +143,13 @@ export default function App() {
       </div>
 
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {rehearseSession && (
+        <RehearseSession
+          session={rehearseSession}
+          onClose={() => dispatch({ type: 'SET_UI', patch: { rehearseSession: null } })}
+        />
+      )}
     </div>
   )
 }

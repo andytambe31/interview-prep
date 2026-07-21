@@ -260,6 +260,181 @@ private boolean valid(TreeNode n, long low, long high) {
     ],
     takeaway: 'Level-order BFS = snapshot the level size before the loop, poll exactly that many, enqueue both children. The rightmost node is the last poll of the level. An off-by-one on the loop bound is exactly what makes this TLE.',
   },
+
+  // ---------------------------------------------------------------------
+  'binary-tree-level-order-traversal': {
+    title: 'Binary Tree Level Order Traversal',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: "Given the root of a binary tree, return its level-order traversal — the node values grouped level by level, from top to bottom, as a list of lists.",
+    beats: [
+      S('The prompt'),
+      I("Return the level-order traversal of a binary tree — the values grouped level by level, top to bottom, as a list of lists.",
+        'Whether you reach for BFS and handle the per-level grouping cleanly.'),
+      TH("Level by level, grouped — that's textbook BFS with a queue. The one wrinkle is I need each level as its own list, not one flat list.",
+        'Grouping the output per level is the only thing beyond a plain BFS.'),
+      SAY("Can the tree be empty? And I return a list of lists, one inner list per level?"),
+      I("Yes to both — an empty tree returns an empty list."),
+      TH("The trick to separate levels: before I process a level, snapshot the queue size. That count is exactly how many nodes are on the current level; everything else in the queue belongs to the next one.",
+        'Snapshot the queue size to mark where one level ends and the next begins.'),
+      S('Approach'),
+      SAY("I'll BFS with a queue. Each round I record the current queue size, pop exactly that many nodes into a fresh list, and enqueue their children for the next level."),
+      I("Sounds good. Anything you're careful about?",
+        'Do you anticipate the size-snapshot pitfall before it bites.'),
+      TH("The one bug: if I loop 'while queue not empty' for the inner loop instead of over a snapshotted size, levels blend together, because I'm adding children as I go.",
+        'Snapshot the size before the inner loop, or levels bleed into each other.'),
+      SAY("The main thing — I snapshot the size before the inner loop, since I'm enqueueing the next level into the same queue."),
+      I("Go ahead."),
+      S('Code'),
+      CODE(`public List<List<Integer>> levelOrder(TreeNode root) {
+    List<List<Integer>> res = new ArrayList<>();
+    if (root == null) return res;                 // empty tree
+    Queue<TreeNode> q = new LinkedList<>();
+    q.offer(root);
+    while (!q.isEmpty()) {
+        int size = q.size();                      // nodes on THIS level
+        List<Integer> level = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            TreeNode node = q.poll();
+            level.add(node.val);
+            if (node.left  != null) q.offer(node.left);
+            if (node.right != null) q.offer(node.right);
+        }
+        res.add(level);                           // commit one level
+    }
+    return res;
+}`),
+      TH("Guard the null root up front so I return an empty list cleanly. Fresh list per level, committed to the result after the inner loop finishes.",
+        'Null-root guard, and one fresh list committed per level.'),
+      S('Test'),
+      SAY("Trace [3,9,20,null,null,15,7]: level 0 is [3], level 1 is [9,20], level 2 is [15,7]. Result [[3],[9,20],[15,7]]."),
+      I("Complexity?",
+        'State and justify time and space.'),
+      SAY("O(n) time — every node once. O(n) space for the queue and the output."),
+      I("Clean. This is the template a lot of tree problems build on."),
+    ],
+    takeaway: 'Level-order = BFS where you snapshot the queue size before each level so you know exactly where it ends. That size-snapshot is the backbone of every "per level" tree problem — right side view, zigzag, and vertical order all reuse it.',
+  },
+
+  // ---------------------------------------------------------------------
+  'binary-tree-zigzag-level-order-traversal': {
+    title: 'Binary Tree Zigzag Level Order Traversal',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Given the root of a binary tree, return the zigzag level-order traversal of its nodes: left-to-right on the first level, right-to-left on the next, alternating.',
+    beats: [
+      S('The prompt'),
+      I("Return the zigzag level order: level 0 left-to-right, level 1 right-to-left, alternating all the way down.",
+        'Can you extend a known pattern (level order) with a twist instead of inventing something new.'),
+      TH("This is just level-order traversal with one extra rule: reverse every other level. Crucially, I should NOT change how I traverse — I traverse normally and only flip the direction I record values in.",
+        'Reuse level-order BFS; only the recording direction alternates.'),
+      SAY("To confirm: level 0 is left-to-right, then it flips every level after?"),
+      I("Correct."),
+      TH("Two ways to flip: reverse the level's list at the end of the odd levels, or build it reversed as I go by inserting at the front. Front-insertion avoids the extra reverse pass.",
+        'Alternate via reversing the list, or via front-insertion with a deque.'),
+      S('Approach'),
+      SAY("Standard level-order BFS, but I keep a boolean 'leftToRight'. For each level I build the list, and flip the boolean after each level."),
+      I("Any way to avoid an explicit reverse?",
+        'Do you know the deque / addFirst optimization.'),
+      SAY("Yes — instead of reversing, I use a LinkedList as a deque and addFirst on the right-to-left levels, so the values land in the right order directly. Same O(n), but no separate reverse pass."),
+      I("Good — either's fine, go with what's clearest."),
+      TH("I'll use addFirst / addLast on a Deque so the intent is explicit and I avoid the extra pass.",
+        'Deque addFirst/addLast puts each value on the correct end as you go.'),
+      S('Code'),
+      CODE(`public List<List<Integer>> zigzagLevelOrder(TreeNode root) {
+    List<List<Integer>> res = new ArrayList<>();
+    if (root == null) return res;
+    Queue<TreeNode> q = new LinkedList<>();
+    q.offer(root);
+    boolean leftToRight = true;
+    while (!q.isEmpty()) {
+        int size = q.size();
+        LinkedList<Integer> level = new LinkedList<>();
+        for (int i = 0; i < size; i++) {
+            TreeNode node = q.poll();
+            if (leftToRight) level.addLast(node.val);
+            else             level.addFirst(node.val);   // build reversed directly
+            if (node.left  != null) q.offer(node.left);
+            if (node.right != null) q.offer(node.right);
+        }
+        res.add(level);
+        leftToRight = !leftToRight;                       // flip each level
+    }
+    return res;
+}`),
+      TH("The traversal itself is identical to plain level order — always enqueue left then right. Only where I place the value inside the level list flips.",
+        'Traversal order is unchanged; only the placement of each value differs.'),
+      S('Test'),
+      SAY("Trace [3,9,20,null,null,15,7]: level 0 [3]; level 1 is a flip level, so [20,9] instead of [9,20]; level 2 [15,7]. Result [[3],[20,9],[15,7]]."),
+      I("Complexity?",
+        'State and justify.'),
+      SAY("O(n) time, O(n) space."),
+      I("Nicely done — reusing level order was exactly the move."),
+    ],
+    takeaway: 'Zigzag is just level-order with a direction flag. Don\'t change the traversal — change WHERE you place each value (addFirst vs addLast). Reusing a known pattern with a small twist reads far better than a bespoke solution.',
+  },
+
+  // ---------------------------------------------------------------------
+  'binary-tree-vertical-order-traversal': {
+    title: 'Binary Tree Vertical Order Traversal',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Given the root of a binary tree, return its vertical order traversal — the node values grouped by column from leftmost to rightmost. Within a column, order nodes top to bottom; nodes in the same row and column go left to right.',
+    beats: [
+      S('The prompt'),
+      I("Return the vertical order traversal: group the node values by column, from the leftmost column to the rightmost. Within a column, order them top to bottom.",
+        'Whether you invent a coordinate system (columns) and pick a traversal that preserves top-to-bottom order.'),
+      TH("'Column' means I need a horizontal coordinate. Root is column 0; going left is column − 1, going right is column + 1. Then I group values by column and emit columns left to right.",
+        'Assign a column index: root = 0, left = col − 1, right = col + 1.'),
+      SAY("Two clarifications: within a column, nodes are top-to-bottom — and if two nodes share the same row and column, what order?"),
+      I("Good question — same row and column, order them left to right, i.e. the order you reach them."),
+      TH("That last rule is the subtle part. If I use BFS — top-down, left-to-right — nodes arrive already in top-to-bottom, left-to-right order, so I can just append. A DFS would let me reach a lower node before a higher one in the same column, forcing a sort by row afterward. BFS is cleaner here.",
+        'BFS gives top-to-bottom, left-to-right order for free; DFS would need an extra sort by row.'),
+      SAY("I'll use BFS specifically, so the within-column ordering falls out naturally rather than needing a sort by row like DFS would."),
+      I("Go for it."),
+      S('Approach'),
+      SAY("I'll BFS, carrying each node's column alongside it. I keep a map from column to a list of values, and track the min and max column seen. At the end I read out columns from min to max."),
+      I("Why track min and max instead of just sorting the keys at the end?",
+        'Do you understand the cost trade-off in your data-structure choice.'),
+      TH("Sorting the keys is an O(k log k) pass. But columns are a contiguous range of integers from min to max, so I can just loop that range — linear, no sort. A TreeMap would auto-sort but adds a log factor on every put.",
+        'Columns are contiguous ints, so a min..max loop beats sorting the keys.'),
+      SAY("Because the columns are contiguous integers, I can loop min..max in linear time instead of paying O(k log k) to sort the keys."),
+      I("Nice."),
+      S('Code'),
+      CODE(`public List<List<Integer>> verticalOrder(TreeNode root) {
+    List<List<Integer>> res = new ArrayList<>();
+    if (root == null) return res;
+    Map<Integer, List<Integer>> cols = new HashMap<>();
+    Queue<TreeNode> nodes   = new LinkedList<>();
+    Queue<Integer>  columns = new LinkedList<>();   // column paired with each node
+    nodes.offer(root);
+    columns.offer(0);
+    int min = 0, max = 0;
+    while (!nodes.isEmpty()) {
+        TreeNode node = nodes.poll();
+        int col = columns.poll();
+        cols.computeIfAbsent(col, k -> new ArrayList<>()).add(node.val);
+        min = Math.min(min, col);
+        max = Math.max(max, col);
+        if (node.left  != null) { nodes.offer(node.left);  columns.offer(col - 1); }
+        if (node.right != null) { nodes.offer(node.right); columns.offer(col + 1); }
+    }
+    for (int c = min; c <= max; c++) res.add(cols.get(c));   // left → right
+    return res;
+}`),
+      TH("I keep two parallel queues — one for nodes, one for their columns — so each node stays paired with its column. Left child shifts to col − 1, right child to col + 1.",
+        'Parallel queues keep each node paired with its column as you BFS.'),
+      S('Test'),
+      SAY("For [3,9,20,null,null,15,7]: col(3)=0, col(9)=−1, col(20)=+1, col(15)=0, col(7)=+2. Columns: −1→[9], 0→[3,15], 1→[20], 2→[7]. Output [[9],[3,15],[20],[7]]."),
+      TH("15 is column 0 and sits below 3 — BFS reached 3 first, so [3,15] comes out correctly top-to-bottom. Exactly why BFS saved me a sort.",
+        'BFS visiting order yields the correct top-to-bottom column contents.'),
+      I("Complexity?",
+        'State and justify.'),
+      SAY("O(n) time — each node once, and the min..max readout is linear in the number of columns, which is at most n. O(n) space for the map and queues."),
+      I("Strong answer — the BFS-over-DFS reasoning is the crux, and you led with it."),
+    ],
+    takeaway: 'Vertical order = give each node a column (root 0, left −1, right +1), group by column, read min→max. Use BFS so the within-column order (top-to-bottom, left-to-right) comes for free — DFS would force a sort by row. Track min/max to read columns without sorting the keys.',
+  },
 }
 
 export function mindsetFor(id) {

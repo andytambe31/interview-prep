@@ -64,7 +64,7 @@ const HIGH = new Set([
   'Word Break', 'Merge Intervals', 'Meeting Rooms II', 'Maximum Subarray', 'Jump Game', 'Partition Labels',
   // Amazon-signature extras
   'Reorder Data in Log Files', 'Critical Connections in a Network', 'Search Suggestions System',
-  'Top K Frequent Words', 'Fruit Into Baskets', 'Reorganize String',
+  'Top K Frequent Words', 'Fruit Into Baskets', 'Reorganize String', 'Binary Tree Vertical Order Traversal',
 ])
 const MED = new Set([
   'Valid Anagram', 'Contains Duplicate', 'Top K Frequent Elements', 'Encode and Decode Strings',
@@ -206,6 +206,7 @@ const AMAZON_EXTRA = [
   ['Fruit Into Baskets', 'Sliding Window', 'Medium'],
   ['Basic Calculator II', 'Stack', 'Medium'],
   ['Binary Tree Zigzag Level Order Traversal', 'Trees', 'Medium'],
+  ['Binary Tree Vertical Order Traversal', 'Trees', 'Medium'],
   ['All Nodes Distance K in Binary Tree', 'Trees', 'Medium'],
   ['Path Sum', 'Trees', 'Easy'],
   ['Path Sum II', 'Trees', 'Medium'],

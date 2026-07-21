@@ -102,42 +102,6 @@ function reducer(state, action) {
     }
     case 'DELETE_REVISION_CARD':
       return { ...state, revisionCards: (state.revisionCards || []).filter((c) => c.id !== action.id) }
-    case 'REHEARSAL_SET_NOTE': {
-      const { key, stageId, value } = action
-      const cur = state.rehearsals?.[key] || { draft: null, history: [] }
-      const draft = cur.draft || { notes: {} }
-      return {
-        ...state,
-        rehearsals: {
-          ...state.rehearsals,
-          [key]: { ...cur, draft: { ...draft, notes: { ...(draft.notes || {}), [stageId]: value } } },
-        },
-      }
-    }
-    case 'REHEARSAL_SAVE_DRAFT': {
-      const { key, patch } = action
-      const cur = state.rehearsals?.[key] || { draft: null, history: [] }
-      return {
-        ...state,
-        rehearsals: { ...state.rehearsals, [key]: { ...cur, draft: { ...(cur.draft || {}), ...patch } } },
-      }
-    }
-    case 'REHEARSAL_DISCARD_DRAFT': {
-      const cur = state.rehearsals?.[action.key]
-      if (!cur) return state
-      return { ...state, rehearsals: { ...state.rehearsals, [action.key]: { ...cur, draft: null } } }
-    }
-    case 'REHEARSAL_COMPLETE': {
-      const { key, attempt } = action
-      const cur = state.rehearsals?.[key] || { draft: null, history: [] }
-      return {
-        ...state,
-        rehearsals: {
-          ...state.rehearsals,
-          [key]: { draft: null, history: [attempt, ...(cur.history || [])] },
-        },
-      }
-    }
     case 'SET_UI':
       return { ...state, ui: { ...state.ui, ...action.patch } }
     case 'SET_CHECK':

@@ -41,12 +41,6 @@ export default function QuestionPage({ id, onBack }) {
               Open on LeetCode ↗
             </a>
           )}
-          <button
-            className="pill border border-line bg-surface text-ink hover:bg-paper"
-            onClick={() => dispatch({ type: 'SET_UI', patch: { rehearseSession: { kind: 'coding', id, title } } })}
-          >
-            Rehearse it yourself →
-          </button>
         </div>
       </header>
 
@@ -75,7 +69,7 @@ export default function QuestionPage({ id, onBack }) {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-line bg-surface/50 p-6 text-sm text-muted">
-          An interview simulation for this problem isn’t written yet. In the meantime, study the pattern below or run a full rehearsal.
+          An interview simulation for this problem isn’t written yet. In the meantime, study the pattern below.
         </div>
       )}
 

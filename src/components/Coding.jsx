@@ -189,13 +189,6 @@ export default function Coding() {
                         </span>
                         <DifficultyBadge level={p.difficulty} />
                         <ConfidenceDots value={p.confidence} onChange={(v) => dispatch({ type: 'UPDATE_PROBLEM', id: p.id, patch: { confidence: v } })} />
-                        <button
-                          className="btn-quiet px-2 text-xs"
-                          title="Run the full mock-interview flow on this problem"
-                          onClick={() => dispatch({ type: 'SET_UI', patch: { rehearseSession: { kind: 'coding', id: p.id, title: p.title } } })}
-                        >
-                          Rehearse
-                        </button>
                         <button className="btn-quiet px-2 text-xs" onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
                           {expanded === p.id ? 'Hide' : 'Learn'}
                         </button>

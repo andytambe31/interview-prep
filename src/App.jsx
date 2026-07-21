@@ -4,6 +4,7 @@ import { daysUntil, interviewDate } from './lib/focus.js'
 import Today from './components/Today.jsx'
 import TheLoop from './components/TheLoop.jsx'
 import Coding from './components/Coding.jsx'
+import QuestionPage from './components/QuestionPage.jsx'
 import LLD from './components/LLD.jsx'
 import Rehearse from './components/Rehearse.jsx'
 import RehearseSession from './components/RehearseSession.jsx'
@@ -53,6 +54,9 @@ export default function App() {
   const firstName = state.candidate.name.split(' ')[0]
 
   const view = () => {
+    if (route.startsWith('q/')) {
+      return <QuestionPage id={route.slice(2)} onBack={() => go('coding')} />
+    }
     switch (route) {
       case 'loop':
         return <TheLoop />
@@ -103,7 +107,7 @@ export default function App() {
 
         <nav className="flex-1 space-y-1 px-3">
           {NAV.map((item) => {
-            const active = route === item.id
+            const active = route === item.id || (item.id === 'coding' && route.startsWith('q/'))
             return (
               <button
                 key={item.id}

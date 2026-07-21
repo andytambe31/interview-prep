@@ -3,7 +3,10 @@ import { useStore } from '../store/StoreContext.jsx'
 import { PageHeader, ProgressBar, ConfidenceDots, DifficultyBadge, StatusBadge } from './common.jsx'
 import { highYield } from '../data/insights.js'
 import { patternsFor } from '../data/patterns.js'
+import { hasMindset } from '../data/mindsets.js'
 import { DSA_SPRINT_ORDER, LLD_TOPIC } from '../lib/focus.js'
+
+const goQuestion = (id) => { window.location.hash = 'q/' + id }
 
 const STATUS_CYCLE = { todo: 'attempted', attempted: 'solved', solved: 'todo' }
 
@@ -164,15 +167,24 @@ export default function Coding() {
                           <StatusBadge status={p.status} />
                         </button>
                         <span className="min-w-0 flex-1">
-                          <span className="flex items-center gap-2">
-                            {p.url ? (
-                              <a href={p.url} target="_blank" rel="noreferrer" className="truncate font-medium hover:text-clay-600 hover:underline">
-                                {p.title}
-                              </a>
-                            ) : (
-                              <span className="truncate font-medium">{p.title}</span>
-                            )}
+                          <span className="flex flex-wrap items-center gap-2">
+                            <button
+                              onClick={() => goQuestion(p.id)}
+                              className="truncate text-left font-medium hover:text-clay-600 hover:underline"
+                              title="Open this question’s page"
+                            >
+                              {p.title}
+                            </button>
                             {p.freq === 'high' && <span className="pill bg-clay-50 text-clay-700">high freq</span>}
+                            {hasMindset(p.id) && (
+                              <button
+                                onClick={() => goQuestion(p.id)}
+                                className="pill bg-clay-500 text-white hover:bg-clay-600"
+                                title="A guided interview walk-through is available"
+                              >
+                                ✦ Walk-through
+                              </button>
+                            )}
                           </span>
                         </span>
                         <DifficultyBadge level={p.difficulty} />
@@ -216,7 +228,7 @@ export default function Coding() {
   )
 }
 
-function PatternGuide({ pat }) {
+export function PatternGuide({ pat }) {
   const Row = ({ label, children }) => (
     <div>
       <div className="kicker mb-1">{label}</div>

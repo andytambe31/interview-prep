@@ -1,0 +1,210 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useStore } from '../store/StoreContext.jsx'
+import { StatusBadge, DifficultyBadge } from './common.jsx'
+import { PatternGuide } from './Coding.jsx'
+import { patternsFor } from '../data/patterns.js'
+import { mindsetFor } from '../data/mindsets.js'
+
+const STATUS_CYCLE = { todo: 'attempted', attempted: 'solved', solved: 'todo' }
+
+export default function QuestionPage({ id, onBack }) {
+  const { state, dispatch } = useStore()
+  const problem = state.coding.problems.find((p) => p.id === id)
+  const mindset = mindsetFor(id)
+
+  const title = mindset?.title || problem?.title || 'Question'
+  const difficulty = problem?.difficulty || mindset?.difficulty
+
+  return (
+    <div>
+      <button className="btn-quiet mb-5 px-2 text-sm" onClick={onBack}>
+        ← Back to Coding
+      </button>
+
+      <header className="mb-6">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          {problem && (
+            <button onClick={() => dispatch({ type: 'UPDATE_PROBLEM', id, patch: { status: STATUS_CYCLE[problem.status] } })} title="Cycle status">
+              <StatusBadge status={problem.status} />
+            </button>
+          )}
+          {difficulty && <DifficultyBadge level={difficulty} />}
+          {problem?.freq === 'high' && <span className="pill bg-clay-50 text-clay-700">high freq</span>}
+          {problem?.topic && <span className="pill border border-line bg-paper text-muted">{problem.topic}</span>}
+        </div>
+        <h1 className="text-3xl font-semibold leading-tight md:text-[2.4rem]">{title}</h1>
+        {mindset?.prompt && <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-muted">{mindset.prompt}</p>}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {problem?.url && (
+            <a href={problem.url} target="_blank" rel="noreferrer" className="pill border border-line bg-surface text-clay-600 hover:underline">
+              Open on LeetCode ↗
+            </a>
+          )}
+          <button
+            className="pill border border-line bg-surface text-ink hover:bg-paper"
+            onClick={() => dispatch({ type: 'SET_UI', patch: { rehearseSession: { kind: 'coding', id, title } } })}
+          >
+            Rehearse this problem →
+          </button>
+        </div>
+      </header>
+
+      {mindset ? (
+        <Transcript mindset={mindset} />
+      ) : (
+        <div className="rounded-2xl border border-dashed border-line bg-surface/50 p-6 text-sm text-muted">
+          A guided interview walk-through for this problem isn’t written yet. In the meantime, study the pattern below or run a full rehearsal.
+        </div>
+      )}
+
+      {/* Pattern guide for the problem */}
+      {problem && (
+        <div className="mt-8 space-y-4">
+          <div className="kicker">The pattern behind it</div>
+          {patternsFor(problem).map((pat) => (
+            <PatternGuide key={pat.name} pat={pat} />
+          ))}
+        </div>
+      )}
+
+      {/* Notes */}
+      {problem && (
+        <div className="mt-8">
+          <div className="kicker mb-1">Your notes</div>
+          <textarea
+            className="input min-h-[90px]"
+            placeholder="The trick to remember, where you got stuck, your own phrasing…"
+            value={problem.notes}
+            onChange={(e) => dispatch({ type: 'UPDATE_PROBLEM', id, patch: { notes: e.target.value } })}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Transcript({ mindset }) {
+  const beats = mindset.beats
+  const [stepMode, setStepMode] = useState(false)
+  const [revealed, setRevealed] = useState(beats.length) // full by default
+  const lastRef = useRef(null)
+
+  // Number the thoughts so the sequence is legible ("thought 3 of 9").
+  const thoughtIndex = useMemo(() => {
+    const map = new Map()
+    let n = 0
+    beats.forEach((b, i) => {
+      if (b.t === 'think') { n += 1; map.set(i, n) }
+    })
+    return { map, total: n }
+  }, [beats])
+
+  const enterStep = () => { setStepMode(true); setRevealed(1) }
+  const enterFull = () => { setStepMode(false); setRevealed(beats.length) }
+  const next = () => setRevealed((r) => Math.min(beats.length, r + 1))
+
+  // Auto-scroll to the newest beat while stepping.
+  useEffect(() => {
+    if (stepMode) lastRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [revealed, stepMode])
+
+  const shown = stepMode ? beats.slice(0, revealed) : beats
+  const done = revealed >= beats.length
+
+  return (
+    <div>
+      {/* Mode toggle */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="kicker mr-1">Interview mindset</span>
+        <button className={stepMode ? 'pill border border-line bg-surface text-muted' : 'pill bg-clay-500 text-white'} onClick={enterFull}>
+          Full transcript
+        </button>
+        <button className={stepMode ? 'pill bg-clay-500 text-white' : 'pill border border-line bg-surface text-muted'} onClick={enterStep}>
+          Step through
+        </button>
+        {stepMode && (
+          <span className="ml-auto text-xs text-faint">
+            {Math.min(revealed, beats.length)} / {beats.length} beats
+          </span>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-line bg-surface p-4 sm:p-6">
+        <div className="space-y-3">
+          {shown.map((b, i) => (
+            <div key={i} ref={i === shown.length - 1 ? lastRef : null}>
+              <Beat beat={b} thoughtNo={thoughtIndex.map.get(i)} thoughtTotal={thoughtIndex.total} />
+            </div>
+          ))}
+        </div>
+
+        {stepMode && !done && (
+          <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
+            <button className="btn-primary px-4 text-sm" onClick={next}>Next →</button>
+            <button className="btn-quiet px-3 text-sm" onClick={enterFull}>Reveal all</button>
+          </div>
+        )}
+        {stepMode && done && (
+          <div className="mt-5 border-t border-line pt-4 text-sm text-muted">That’s the full thought process, end to end. ✓</div>
+        )}
+      </div>
+
+      {/* Takeaway */}
+      {mindset.takeaway && (
+        <div className="mt-4 rounded-2xl border border-clay-200 bg-clay-50/50 p-5">
+          <div className="kicker mb-1 text-clay-700">The one thing to carry into the room</div>
+          <p className="text-[15px] leading-relaxed text-clay-800">{mindset.takeaway}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Beat({ beat, thoughtNo, thoughtTotal }) {
+  if (beat.t === 'stage') {
+    return (
+      <div className="flex items-center gap-3 pt-3 first:pt-0">
+        <span className="kicker whitespace-nowrap text-clay-600">{beat.label}</span>
+        <span className="h-px flex-1 bg-line" />
+      </div>
+    )
+  }
+  if (beat.t === 'interviewer') {
+    return (
+      <div className="rounded-xl bg-paper px-4 py-2.5">
+        <div className="kicker mb-0.5 text-faint">Interviewer</div>
+        <p className="text-[15px] leading-relaxed text-ink/90">{beat.text}</p>
+      </div>
+    )
+  }
+  if (beat.t === 'say') {
+    return (
+      <div className="rounded-xl border border-sage-200 bg-sage-50/60 px-4 py-2.5">
+        <div className="kicker mb-0.5 text-sage-600">You — out loud</div>
+        <p className="text-[15px] leading-relaxed text-ink/90">{beat.text}</p>
+      </div>
+    )
+  }
+  if (beat.t === 'think') {
+    return (
+      <div className="rounded-xl border border-clay-200 bg-clay-50 px-4 py-2.5">
+        <div className="kicker mb-0.5 flex items-center gap-1.5 text-clay-700">
+          <span>💭 Thinking</span>
+          {thoughtNo && <span className="text-clay-500/70">· thought {thoughtNo} of {thoughtTotal}</span>}
+        </div>
+        <p className="text-[15px] italic leading-relaxed text-clay-900">{beat.text}</p>
+      </div>
+    )
+  }
+  if (beat.t === 'code') {
+    return (
+      <div>
+        <div className="kicker mb-1 text-faint">Writing</div>
+        <pre className="overflow-x-auto rounded-lg border border-line bg-paper p-3 font-mono text-[12.5px] leading-snug text-ink/85">
+          {beat.text}
+        </pre>
+      </div>
+    )
+  }
+  return null
+}

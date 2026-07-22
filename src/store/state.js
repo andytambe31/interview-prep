@@ -103,8 +103,15 @@ export function mergeSeed(state) {
   }
 }
 
+// Seed cards that were removed in a later version. Without this, mergeCards
+// would treat them as "user-created" (id not in seed) and keep them forever.
+const REMOVED_CARD_IDS = new Set([
+  'rc-bstmpl-when', 'rc-bstmpl-bounds', 'rc-bstmpl-unified', 'rc-bstmpl-basic',
+  'rc-bstmpl-left', 'rc-bstmpl-right', 'rc-bstmpl-min', 'rc-bstmpl-max',
+])
+
 function mergeCards(stored = [], seed = []) {
   const seedIds = new Set(seed.map((c) => c.id))
-  const userCreated = stored.filter((c) => !seedIds.has(c.id))
+  const userCreated = stored.filter((c) => !seedIds.has(c.id) && !REMOVED_CARD_IDS.has(c.id))
   return [...seed, ...userCreated]
 }

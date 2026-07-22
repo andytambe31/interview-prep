@@ -23,6 +23,7 @@ export default function Coding() {
   const [difficulty, setDifficulty] = useState('All')
   const [freqOnly, setFreqOnly] = useState(false)
   const [neetOnly, setNeetOnly] = useState(false)
+  const [reportedOnly, setReportedOnly] = useState(false)
   const [hideSolved, setHideSolved] = useState(false)
   const [open, setOpen] = useState(() => (focusTopic ? { [focusTopic]: true } : {}))
   const [expanded, setExpanded] = useState(null)
@@ -43,6 +44,7 @@ export default function Coding() {
     if (difficulty !== 'All' && p.difficulty !== difficulty) return false
     if (freqOnly && p.freq !== 'high') return false
     if (neetOnly && !p.neet) return false
+    if (reportedOnly && !(p.reported && p.reported.length)) return false
     if (hideSolved && p.status === 'solved') return false
     if (query && !p.title.toLowerCase().includes(query.toLowerCase())) return false
     return true
@@ -57,10 +59,10 @@ export default function Coding() {
         return { topic, all, shown, done }
       })
       .filter((g) => g.all.length > 0)
-  }, [problems, query, difficulty, freqOnly, neetOnly, hideSolved])
+  }, [problems, query, difficulty, freqOnly, neetOnly, reportedOnly, hideSolved])
 
   const cycleStatus = (p) => dispatch({ type: 'UPDATE_PROBLEM', id: p.id, patch: { status: STATUS_CYCLE[p.status] } })
-  const anyFilter = query || difficulty !== 'All' || freqOnly || neetOnly || hideSolved
+  const anyFilter = query || difficulty !== 'All' || freqOnly || neetOnly || reportedOnly || hideSolved
 
   return (
     <div>
@@ -115,6 +117,10 @@ export default function Coding() {
           <input type="checkbox" className="mr-1" checked={neetOnly} onChange={(e) => setNeetOnly(e.target.checked)} />
           NeetCode 150
         </label>
+        <label className="pill cursor-pointer border border-line bg-surface text-muted" title="Problems reported in the Amazon SDE-1 interview loop (Round 1 / Round 2)">
+          <input type="checkbox" className="mr-1" checked={reportedOnly} onChange={(e) => setReportedOnly(e.target.checked)} />
+          Reported in loop
+        </label>
         <label className="pill cursor-pointer border border-line bg-surface text-muted">
           <input type="checkbox" className="mr-1" checked={hideSolved} onChange={(e) => setHideSolved(e.target.checked)} />
           Hide solved
@@ -130,7 +136,8 @@ export default function Coding() {
       <div className="space-y-3">
         {groups.map((g) => {
           const isFocus = g.topic === focusTopic
-          const isOpen = open[g.topic] ?? false
+          // Auto-expand groups while any filter is active so matches are visible.
+          const isOpen = anyFilter ? true : (open[g.topic] ?? false)
           const visible = anyFilter ? g.shown : g.all
           if (anyFilter && g.shown.length === 0) return null
           return (
@@ -176,6 +183,12 @@ export default function Coding() {
                               {p.title}
                             </button>
                             {p.freq === 'high' && <span className="pill bg-clay-50 text-clay-700">high freq</span>}
+                            {p.reported?.includes('r1') && (
+                              <span className="pill border border-sage-300 bg-sage-50 text-sage-700" title="Reported in Amazon SDE-1 Round 1">Asked · R1</span>
+                            )}
+                            {p.reported?.includes('r2') && (
+                              <span className="pill border border-sage-300 bg-sage-50 text-sage-700" title="Reported in Amazon SDE-1 Round 2">Asked · R2</span>
+                            )}
                             {hasMindset(p.id) && (
                               <button
                                 onClick={() => goQuestion(p.id)}

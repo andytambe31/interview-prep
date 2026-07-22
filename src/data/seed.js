@@ -91,6 +91,34 @@ const MED = new Set([
 ])
 const fq = (t) => (HIGH.has(t) ? 'high' : MED.has(t) ? 'medium' : 'low')
 
+// Problems reported in specific Amazon SDE-1 loop rounds, per candidate
+// handbooks/experiences (AccioJob Amazon SDE-1 kit + LeetCode Discuss). Values
+// are the round tags shown as a column in the Coding list.
+const REPORTED = {
+  // Round 1 — DSA + LP
+  'Spiral Matrix': ['r1'],
+  'Rotate Image': ['r1'],
+  'Find All Anagrams in a String': ['r1'],
+  'Count Univalue Subtrees': ['r1'],
+  'Maximum Width of Binary Tree': ['r1'],
+  'All Nodes Distance K in Binary Tree': ['r1'],
+  'Lowest Common Ancestor of a Binary Tree': ['r1'],
+  'Minimum Path Sum': ['r1'],
+  'Clone Graph': ['r1'],
+  'Rotting Oranges': ['r1'],
+  'Search in Rotated Sorted Array': ['r1'],
+  'Generate Parentheses': ['r1'],
+  'Maximum Product Subarray': ['r1'],
+  'Decode Ways': ['r1'],
+  'Minimum Falling Path Sum': ['r1'],
+  'Kth Largest Element in a Stream': ['r1'],
+  'Find the Celebrity': ['r1'],
+  // Round 2 — DSA / Machine coding + LP
+  'Group Anagrams': ['r2'],
+  'Kth Smallest Element in a Sorted Matrix': ['r2'],
+  'Open the Lock': ['r2'],
+}
+
 const mk = (title, topic, difficulty, neet) => ({
   id: slugify(title),
   title,
@@ -98,6 +126,7 @@ const mk = (title, topic, difficulty, neet) => ({
   difficulty,
   freq: fq(title),
   neet,
+  reported: REPORTED[title] || [],
   url: 'https://leetcode.com/problems/' + (URL_OVERRIDE[title] || slugify(title)) + '/',
   status: 'todo',
   confidence: 0,
@@ -212,6 +241,16 @@ const AMAZON_EXTRA = [
   ['All Nodes Distance K in Binary Tree', 'Trees', 'Medium'],
   ['Path Sum', 'Trees', 'Easy'],
   ['Path Sum II', 'Trees', 'Medium'],
+  // Reported in Amazon SDE-1 loop rounds (AccioJob handbook + candidate reports)
+  ['Find All Anagrams in a String', 'Sliding Window', 'Medium'],
+  ['Count Univalue Subtrees', 'Trees', 'Medium'],
+  ['Maximum Width of Binary Tree', 'Trees', 'Medium'],
+  ['Lowest Common Ancestor of a Binary Tree', 'Trees', 'Medium'],
+  ['Minimum Path Sum', 'Dynamic Programming', 'Medium'],
+  ['Minimum Falling Path Sum', 'Dynamic Programming', 'Medium'],
+  ['Find the Celebrity', 'Graphs', 'Medium'],
+  ['Kth Smallest Element in a Sorted Matrix', 'Heaps', 'Medium'],
+  ['Open the Lock', 'Graphs', 'Medium'],
   // Binary Search — Amazon-asked, beyond the NeetCode set
   ['Search Insert Position', 'Binary Search', 'Easy'],
   ['First Bad Version', 'Binary Search', 'Easy'],

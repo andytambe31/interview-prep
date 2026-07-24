@@ -1094,6 +1094,118 @@ class HourlyFeeStrategy implements FeeStrategy {
     ],
     takeaway: 'LLD is a conversation, not a coding sprint. Scope requirements first (functional + non-functional, in/out), turn nouns into single-responsibility classes, state relationships in precise UML (composition vs association), and reach for patterns only with justification (Singleton / Factory / Strategy here). Always close with extensibility (OCP) and — the senior signal — the concurrency race on the shared resource. Same skeleton works for vending machine, elevator, ATM, and locker.',
   },
+
+  // ---------------------------------------------------------------------
+  'ood-vending-machine': {
+    title: 'Design a Vending Machine',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Design the classes for a vending machine: insert money, select a product, dispense it with change, and cancel for a refund — plus admin restock. This is a class-design discussion; narrate out loud. (The classic State-pattern problem.)',
+    beats: [
+      S('Clarify requirements'),
+      I("Design a vending machine. Scope it with me before you design anything."),
+      TH("A vending machine is the textbook STATE MACHINE — but I will scope it first: what can a user do, and what are the failure modes? The states fall out of that.",
+        'Recognize a vending machine as a state machine, but scope the behaviour before naming states.'),
+      SAY("Functionally: a user inserts money in denominations, selects a product, the machine dispenses it and returns change, and can cancel for a refund. Products have a price and limited inventory. An admin can restock and collect cash. Is that the core?"),
+      I("Yes. What are the tricky cases?",
+        'Will you enumerate the failure/edge states up front.'),
+      TH("The edge cases ARE the states: not enough money, item out of stock, exact change unavailable, cancel mid-transaction. And the coin hardware is out of scope.",
+        'The failure modes (insufficient funds, out of stock, no change) are exactly the states to model.'),
+      SAY("Edge cases: insufficient money for the selection, the item is out of stock, the machine cannot make exact change, and cancel/refund mid-way. I will treat the physical coin mechanism as out of scope."),
+      I("Good."),
+      S('Core entities / classes'),
+      SAY("Core classes: VendingMachine (the context), a VendingMachineState interface, and concrete states IdleState, HasMoneyState, DispenseState. Then Product, an Inventory of slots (product + count), and a Coin enum for denominations."),
+      I("Why model states as classes instead of a status enum with a switch in each method?",
+        'Do you justify the State pattern over an enum-plus-switch.'),
+      TH("With an enum I would switch on the state inside every method — insertCoin, selectProduct, dispense — which grows into a tangle as states multiply, and adding a state means editing every method. One class per state puts that state behaviour in one place and makes adding a state Open/Closed.",
+        'State pattern: one class per state avoids a switch-on-state duplicated across every method (OCP).'),
+      SAY("I will model each state as a class implementing a shared interface — the State pattern. Each state keeps its own rules in one place, and I can add a state without editing the others."),
+      I("That is the answer I was after."),
+      CODE(`enum Coin { PENNY(1), NICKEL(5), DIME(10), QUARTER(25);
+    final int cents; Coin(int c) { this.cents = c; } }
+
+class Product { String code; String name; int priceCents; }
+
+interface VendingMachineState {
+    void insertCoin(Coin coin);
+    void selectProduct(String code);
+    void dispense();
+    void cancel();
+}`),
+      S('Relationships'),
+      SAY("Relationships: VendingMachine COMPOSES its state objects and its Inventory — it creates and owns them. Inventory composes its slots/products. Each concrete state holds a back-reference to the VendingMachine so it can trigger transitions — an association between context and state. IdleState IS-A VendingMachineState."),
+      TH("The context owns the states (composition), but a state only references the machine to drive transitions — it does not own the machine, so that back-link is association.",
+        'Context owns states (composition); each state holds a back-reference to the context (association) to transition it.'),
+      I("Makes sense."),
+      S('Class design'),
+      SAY("The VendingMachine holds currentState, the inserted balance, and the inventory, and exposes insertCoin / selectProduct / dispense / cancel that DELEGATE to currentState. It also has setState() so a state can transition the machine."),
+      TH("The machine itself holds no branching logic — it forwards each action to the current state. That delegation is the essence of the pattern: behaviour lives in the state objects, not in the context.",
+        'The context delegates every action to its current state; states call setState() to transition.'),
+      CODE(`class VendingMachine {
+    private final VendingMachineState idle, hasMoney, dispense;
+    private VendingMachineState current;
+    private int balanceCents;
+    private Inventory inventory;
+
+    VendingMachine() {
+        idle = new IdleState(this);
+        hasMoney = new HasMoneyState(this);
+        dispense = new DispenseState(this);
+        current = idle;
+    }
+    void setState(VendingMachineState s) { this.current = s; }
+    // every user action just delegates to the current state:
+    public void insertCoin(Coin c)      { current.insertCoin(c); }
+    public void selectProduct(String x) { current.selectProduct(x); }
+    public void dispenseProduct()       { current.dispense(); }
+    public void cancel()                { current.cancel(); }
+}`),
+      S('Design patterns'),
+      I("Which patterns, and where?",
+        'Name patterns with justification, not as buzzwords.'),
+      TH("State is the centerpiece. A Factory could build the state objects and Singleton could model the one physical machine, but I would not over-pattern — State carries this design.",
+        'State is the core pattern here; Factory/Singleton are supporting, not the story.'),
+      SAY("The star is State — the behaviour changes with the machine mode. Supporting cast: a Factory to create state instances, and the VendingMachine as a Singleton since there is one physical unit. But State is what carries the design."),
+      I("Agreed — and not over-patterning is the right instinct."),
+      CODE(`class HasMoneyState implements VendingMachineState {
+    private final VendingMachine m;
+    HasMoneyState(VendingMachine m) { this.m = m; }
+
+    public void insertCoin(Coin c) { m.addBalance(c.cents); }        // stay in this state
+    public void selectProduct(String code) {
+        Product p = m.inventory().get(code);
+        if (p == null || m.inventory().count(code) == 0) return;     // out of stock
+        if (m.balance() < p.priceCents) return;                      // insufficient funds
+        m.setSelected(p);
+        m.setState(m.dispenseState());                               // transition
+    }
+    public void dispense() { /* not valid until a product is selected */ }
+    public void cancel()   { m.refund(); m.setState(m.idleState()); }
+}`),
+      S('Key APIs'),
+      SAY("The APIs all delegate to the current state: insertCoin(Coin), selectProduct(String code), dispenseProduct(), cancel(). Plus admin actions restock(product, qty) and collect(). Each state implements the four user actions and either acts and transitions, or rejects the action for that state."),
+      S('Walk a use case'),
+      SAY("Trace a purchase. Start in Idle. insertCoin → IdleState adds to balance and transitions to HasMoneyState. Another insertCoin → HasMoneyState just adds more. selectProduct(code) in HasMoneyState: if in stock and balance >= price → set the selection and transition to DispenseState; otherwise stay and report out-of-stock or insufficient funds. In DispenseState, dispense() drops the product, returns balance minus price as change, decrements inventory, and transitions back to Idle."),
+      I("What if they cancel after inserting money, or you cannot make exact change?",
+        'Do you handle the refund and no-change edge paths.'),
+      TH("cancel() in HasMoneyState refunds the balance and returns to Idle. If exact change is not available at dispense time, I reject the selection and refund rather than short-change the user.",
+        'Cancel refunds and returns to Idle; if change is unavailable, reject and refund rather than dispense.'),
+      SAY("cancel() from HasMoneyState refunds and returns to Idle. And if the machine cannot make exact change, DispenseState refuses and refunds instead of dispensing."),
+      S('Extensibility & trade-offs'),
+      SAY("Extending it: a MaintenanceState or a dedicated SoldOutState is just a new class implementing the interface — no edits to the existing states (OCP). Concurrency: a physical machine serves one transaction at a time, so I would guard it so a second user cannot interleave mid-transaction. The trade-off versus an enum-plus-switch is more classes up front, but each state localizes its own logic and it scales cleanly as states and events grow — which is exactly why State beats a giant switch here."),
+      I("Complete and well-reasoned — recognizing the state machine and justifying State over a switch is exactly what I wanted."),
+    ],
+    rubric: [
+      'Recognized the vending machine as a STATE MACHINE and scoped requirements (insert money, select, dispense, change, cancel, restock; coin hardware out of scope)',
+      'Enumerated the edge states: insufficient funds, out of stock, no exact change, cancel mid-transaction',
+      'Core entities: VendingMachine context, State interface + Idle/HasMoney/Dispense states, Product, Inventory, Coin enum',
+      'Justified the State pattern over an enum + switch (OCP, behaviour localized per state)',
+      'Context delegates every action to currentState; states call setState() to transition',
+      'Key APIs: insertCoin / selectProduct / dispense / cancel (+ restock/collect), each implemented per state',
+      'Walked the purchase flow + the cancel and no-change paths; extensibility (new state via OCP) + one-transaction concurrency',
+    ],
+    takeaway: 'A vending machine is the canonical STATE pattern. When behaviour depends on a mode and you have many (state x event) combinations, model each state as a class implementing a shared interface and let the context delegate to currentState — instead of a switch-on-state copied into every method. Scope the edge cases first (they become your states), justify State over enum+switch, and close with new-state-via-OCP plus one-transaction concurrency. Contrast it with Parking Lot, which leaned on Singleton / Factory / Strategy — together they cover the patterns you will reach for most.',
+  },
 }
 
 export function mindsetFor(id) {

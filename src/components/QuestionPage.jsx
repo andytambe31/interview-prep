@@ -15,11 +15,13 @@ export default function QuestionPage({ id, onBack }) {
 
   const title = mindset?.title || problem?.title || 'Question'
   const difficulty = problem?.difficulty || mindset?.difficulty
+  const isLLD = id.startsWith('ood-')
+  const pats = problem ? patternsFor(problem) : []
 
   return (
     <div>
       <button className="btn-quiet mb-5 px-2 text-sm" onClick={onBack}>
-        ← Back to Coding
+        ← Back to {isLLD ? 'LLD' : 'Coding'}
       </button>
 
       <header className="mb-6">
@@ -80,11 +82,11 @@ export default function QuestionPage({ id, onBack }) {
         </div>
       )}
 
-      {/* Pattern guide for the problem */}
-      {problem && (
+      {/* Pattern guide for the problem (coding topics only) */}
+      {pats.length > 0 && (
         <div className="mt-8 space-y-4">
           <div className="kicker">The pattern behind it</div>
-          {patternsFor(problem).map((pat) => (
+          {pats.map((pat) => (
             <PatternGuide key={pat.name} pat={pat} />
           ))}
         </div>

@@ -2,7 +2,10 @@ import React, { useState } from 'react'
 import { useStore } from '../store/StoreContext.jsx'
 import { PageHeader, ProgressBar, ConfidenceDots, DifficultyBadge, StatusBadge } from './common.jsx'
 import { lldProblems } from '../data/lld.js'
+import { hasMindset } from '../data/mindsets.js'
 import { lldRound } from '../data/insights.js'
+
+const goQuestion = (id) => { window.location.hash = 'q/' + id }
 import {
   whatIsLLD,
   oopPillars,
@@ -96,6 +99,15 @@ export default function LLD() {
                 </button>
                 <DifficultyBadge level={prob.difficulty} />
                 {t && <ConfidenceDots value={t.confidence} onChange={(v) => dispatch({ type: 'UPDATE_PROBLEM', id: t.id, patch: { confidence: v } })} />}
+                {hasMindset(prob.id) && (
+                  <button
+                    className="pill bg-clay-500 text-white hover:bg-clay-600"
+                    title="Open the full LLD interview simulation for this design"
+                    onClick={() => goQuestion(prob.id)}
+                  >
+                    ▶ Interview sim
+                  </button>
+                )}
                 <button className="btn-quiet px-2 text-sm" onClick={() => setOpen(isOpen ? null : prob.id)}>
                   {isOpen ? 'Hide' : 'Study'}
                 </button>

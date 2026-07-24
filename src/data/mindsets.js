@@ -966,6 +966,134 @@ private int findBound(int[] nums, int target, boolean first) {
     ],
     takeaway: 'Many queries + "max count under a budget" → sort, prefix-sum, binary search per query. The sum ignores order so greedily take the smallest; positivity makes the prefixes monotonic. It is the greedy-maximum use of the one template: find the first prefix that busts the budget, answer = left − 1. Preprocess once, answer each query in O(log n).',
   },
+
+  // ---------------------------------------------------------------------
+  // LLD interview simulation — keyed to the OOD problem id
+  'ood-parking-lot': {
+    title: 'Design a Parking Lot',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Design the classes for a parking lot: multiple floors and gates, different vehicle and spot sizes, ticket on entry, and a fee on exit. This is a low-level (class) design discussion, not a coding problem — narrate your design out loud.',
+    beats: [
+      S('Clarify requirements'),
+      I("Design a parking lot for me. Before you write any class, spend a couple of minutes scoping it with me."),
+      TH("First rule of LLD: do not start drawing classes. Scope it first. I will split functional from non-functional and confirm what is in and out of scope — that alone signals seniority.",
+        'Scope before designing: functional vs non-functional requirements, and what is out of scope.'),
+      SAY("Let me clarify the functional side: the lot has multiple floors and multiple entry/exit gates; vehicles come in sizes — motorcycle, car, truck — and need matching spot sizes; we issue a ticket on entry and charge a fee on exit. Is that the core flow?"),
+      I("Yes. What about pricing and payment?",
+        'Will you scope the fuzzy parts explicitly instead of assuming them.'),
+      SAY("I will make pricing pluggable — say hourly by vehicle type — but treat the real payment gateway as out of scope, just a PaymentProcessor boundary. Non-functionally I am assuming concurrent parking from several gates and a scale of thousands of spots. Fair?"),
+      I("Fair. Go ahead."),
+      TH("Now I have the shape: floors, gates, sized spots, tickets, pluggable fee, concurrency. The nouns in that description become my classes.",
+        'The nouns in the requirements become the candidate classes.'),
+      S('Core entities / classes'),
+      SAY("Pulling out the nouns, each with a single responsibility: ParkingLot (the top-level system), ParkingFloor, an abstract ParkingSpot with MotorcycleSpot / CompactSpot / LargeSpot subtypes, an abstract Vehicle with Motorcycle / Car / Truck, a Ticket, and EntryGate / ExitGate. Plus enums VehicleType and SpotType."),
+      I("Why an abstract ParkingSpot hierarchy instead of one Spot class with a size field?",
+        'Do you justify the hierarchy vs a flag — SRP / OCP reasoning.'),
+      TH("A size field works, but subclasses let each spot type own its fit rules and let me add a new type — an EV spot with charging — as a new class rather than editing a big switch. That is Open/Closed.",
+        'Subclasses over a size flag → new spot types drop in without editing existing code (OCP).'),
+      SAY("Subclasses, so a new spot type is a new class, not a change to existing code — it keeps the design Open/Closed."),
+      I("Good."),
+      CODE(`enum VehicleType { MOTORCYCLE, CAR, TRUCK }
+enum SpotType    { MOTORCYCLE, COMPACT, LARGE }
+
+abstract class Vehicle {
+    String license; VehicleType type;
+    Vehicle(String license, VehicleType type) { this.license = license; this.type = type; }
+}
+class Car extends Vehicle { Car(String l) { super(l, VehicleType.CAR); } }
+
+abstract class ParkingSpot {
+    private final SpotType type;
+    private boolean occupied;
+    private Vehicle vehicle;                 // association: set only while parked
+    ParkingSpot(SpotType type) { this.type = type; }
+    boolean isFree() { return !occupied; }
+}
+class CompactSpot extends ParkingSpot { CompactSpot() { super(SpotType.COMPACT); } }`),
+      S('Relationships'),
+      SAY("Relationships: ParkingLot composes ParkingFloors, and each ParkingFloor composes its ParkingSpots — the lot creates and owns them, so they die with it. A ParkingSpot is ASSOCIATED with a Vehicle only while occupied — it holds a reference but does not own it. Car IS-A Vehicle; CompactSpot IS-A ParkingSpot. A Ticket references one spot and one vehicle."),
+      I("So spot-to-vehicle — composition or association? Be precise.",
+        'Do you use the exact UML term and know why it is not composition.'),
+      TH("Composition would mean the spot owns the vehicle and the vehicle dies with the spot — false. The spot only points at the vehicle for the duration of the stay. That is association.",
+        'Spot ↔ Vehicle is association (reference only); composition would wrongly tie the vehicle lifecycle to the spot.'),
+      SAY("Association — the spot references the vehicle while parked, but the vehicle exists independently and drives away; the spot never owns it."),
+      I("Right."),
+      S('Class design'),
+      SAY("Fleshing out the key behaviour: ParkingSpot exposes tryPark and free rather than a public flag, and ParkingLot holds the floors plus a FeeStrategy and exposes park and exit."),
+      TH("Encapsulate the occupied flag — nobody flips it directly; every change goes through tryPark/free so the invariant a spot holds at most one vehicle always holds. And tryPark must be atomic for concurrency, which I will come back to.",
+        'Encapsulate spot state behind tryPark/free so the one-vehicle-per-spot invariant cannot be broken.'),
+      CODE(`abstract class ParkingSpot {
+    // ... type, occupied, vehicle ...
+    synchronized boolean tryPark(Vehicle v) {   // atomic → no double-booking
+        if (occupied) return false;
+        occupied = true; vehicle = v; return true;
+    }
+    synchronized void free() { occupied = false; vehicle = null; }
+}`),
+      S('Design patterns'),
+      I("Where would a design pattern genuinely help here?",
+        'Will you name patterns with justification, not as buzzwords.'),
+      TH("Three earn their place: Singleton for the one ParkingLot, Factory to build the right spot/vehicle from a type, and Strategy for pricing so I can swap schemes without touching the lot.",
+        'Singleton (one lot), Factory (create by type), Strategy (pluggable fee) — each with a reason.'),
+      SAY("Singleton for ParkingLot — one physical lot, one source of truth. Factory — a ParkingSpotFactory builds the right spot subtype from a SpotType, so callers never instantiate a concrete spot directly. Strategy — a FeeStrategy interface with HourlyFeeStrategy and FlatRateStrategy, injected into the lot, so pricing is swappable and the lot stays Open/Closed to new schemes."),
+      I("That is exactly the kind of justification I want."),
+      CODE(`interface FeeStrategy { double fee(VehicleType type, long entryMs, long exitMs); }
+
+class HourlyFeeStrategy implements FeeStrategy {
+    public double fee(VehicleType type, long entryMs, long exitMs) {
+        long hours = Math.max(1, (exitMs - entryMs + 3_599_999) / 3_600_000); // ceil, min 1
+        double rate = switch (type) { case CAR -> 20; case TRUCK -> 40; default -> 10; };
+        return hours * rate;
+    }
+}`),
+      S('Key APIs'),
+      SAY("The main APIs: Ticket park(Vehicle v) — find a matching free spot, occupy it, issue a ticket; double exit(Ticket t) — free the spot and compute the fee via the strategy; and a helper ParkingSpot findAvailableSpot(VehicleType type). park throws (or returns empty) when the lot is full."),
+      CODE(`class ParkingLot {
+    private static final ParkingLot INSTANCE = new ParkingLot();      // Singleton
+    public static ParkingLot getInstance() { return INSTANCE; }
+
+    private final List<ParkingFloor> floors = new ArrayList<>();
+    private FeeStrategy feeStrategy = new HourlyFeeStrategy();         // Strategy (injectable)
+
+    public Ticket park(Vehicle v) {
+        ParkingSpot spot = findAvailableSpot(v.type);
+        if (spot == null || !spot.tryPark(v)) throw new IllegalStateException("Lot full");
+        return new Ticket(v, spot, System.currentTimeMillis());
+    }
+    public double exit(Ticket t) {
+        double fee = feeStrategy.fee(t.vehicle.type, t.entryMs, System.currentTimeMillis());
+        t.spot.free();
+        return fee;
+    }
+}`),
+      I("How do you find a free spot fast — surely not by scanning every spot each time?",
+        'Do you think about efficiency of the lookup, not just correctness.'),
+      TH("Scanning all spots is O(total). Better: keep a queue (or count) of free spots per spot-type on each floor, so parking pops an available spot in O(1) and exit pushes it back.",
+        'Track free spots per type (a queue/count) for O(1) assignment instead of an O(n) scan.'),
+      SAY("I would not scan — I keep a free-spot queue per spot type on each floor, so park pops one in O(1) and exit returns it to that queue."),
+      S('Walk a use case'),
+      SAY("Trace parking a car then exiting. park(car): findAvailableSpot(CAR) returns a free CompactSpot → spot.tryPark(car) sets it occupied and stores the car → a Ticket with the entry time is issued. exit(ticket): strategy.fee(CAR, entry, now) computes the charge → spot.free() clears it and returns it to the free queue → return the fee."),
+      I("Any concurrency concern in that flow?",
+        'Do you catch the race on the shared spot resource — the senior-level signal.'),
+      TH("Yes — two gates could grab the same spot at the same instant. The find-then-occupy step must be atomic. tryPark is synchronized, but the find-and-claim should be one atomic step (lock per floor, or a concurrent free-spot queue) so two gates never double-book.",
+        'find-then-occupy is a race across gates → make claiming a spot atomic (lock per floor / concurrent queue).'),
+      SAY("There is a race — two gates could claim the same spot. I make claiming atomic: tryPark is synchronized, and the free-spot structure per floor is thread-safe, so two gates can never double-book one spot."),
+      S('Extensibility & trade-offs'),
+      SAY("Extending it: an EV spot is a new SpotType, a new ParkingSpot subclass, and one factory case — no edits elsewhere (OCP). A new pricing scheme is a new FeeStrategy. For scale, the per-type free-spot queues cost a little extra memory but turn an O(n) spot search into O(1). The main trade-off I would call out is that lot-wide locking would kill throughput, so I would lock per floor (or per spot) instead."),
+      I("That is a complete design — you scoped it, justified your patterns, kept it Open/Closed, and caught the concurrency race. That is exactly what I look for at this level."),
+    ],
+    rubric: [
+      'Scoped requirements first: functional (floors, gates, vehicle/spot sizes, ticket, fee) + non-functional (concurrency, scale), and pushed payment internals out of scope',
+      'Core entities each with one responsibility: ParkingLot, ParkingFloor, ParkingSpot hierarchy, Vehicle hierarchy, Ticket, gates, enums',
+      'Correct relationships: composition (lot → floor → spot), association (spot ↔ vehicle), inheritance (spot/vehicle subtypes)',
+      'Patterns justified — Singleton (one lot), Factory (spot by type), Strategy (pluggable fee) — not buzzwords',
+      'Encapsulation: spot state changed only via tryPark/free (one-vehicle invariant)',
+      'Key APIs: park(Vehicle) → Ticket, exit(Ticket) → fee, findAvailableSpot; O(1) assignment via per-type free queues',
+      'Extensibility (new spot type / fee via OCP) AND the concurrency race on claiming a spot',
+    ],
+    takeaway: 'LLD is a conversation, not a coding sprint. Scope requirements first (functional + non-functional, in/out), turn nouns into single-responsibility classes, state relationships in precise UML (composition vs association), and reach for patterns only with justification (Singleton / Factory / Strategy here). Always close with extensibility (OCP) and — the senior signal — the concurrency race on the shared resource. Same skeleton works for vending machine, elevator, ATM, and locker.',
+  },
 }
 
 export function mindsetFor(id) {

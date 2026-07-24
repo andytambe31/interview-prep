@@ -51,7 +51,8 @@ export default function App() {
 
   const view = () => {
     if (route.startsWith('q/')) {
-      return <QuestionPage id={route.slice(2)} onBack={() => go('coding')} />
+      const qid = route.slice(2)
+      return <QuestionPage id={qid} onBack={() => go(qid.startsWith('ood-') ? 'lld' : 'coding')} />
     }
     switch (route) {
       case 'loop':
@@ -101,7 +102,9 @@ export default function App() {
 
         <nav className="flex-1 space-y-1 px-3">
           {NAV.map((item) => {
-            const active = route === item.id || (item.id === 'coding' && route.startsWith('q/'))
+            const active =
+              route === item.id ||
+              (route.startsWith('q/') && (item.id === (route.startsWith('q/ood-') ? 'lld' : 'coding')))
             return (
               <button
                 key={item.id}

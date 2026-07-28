@@ -1074,6 +1074,154 @@ export const seedRevisionCards = [
     'The graph adjacency-map pattern (build, read, print)?',
     'The three moves you reuse constantly on Map<Integer, List<Integer>>:\n• **Build** an undirected edge — computeIfAbsent BOTH directions (initializes the list, then adds).\n• **Read** neighbors safely — getOrDefault with an empty list, so a node with no entry loops zero times.\n• **Print** the whole graph — entrySet (node + its neighbors).',
     '// build (undirected edge v-w)\ngraph.computeIfAbsent(v, k -> new ArrayList<>()).add(w);\ngraph.computeIfAbsent(w, k -> new ArrayList<>()).add(v);\n\n// read (safe when the node is missing)\nfor (int nb : graph.getOrDefault(node, Collections.emptyList())) { /* DFS/BFS */ }\n\n// print\nfor (Map.Entry<Integer, List<Integer>> e : graph.entrySet())\n    System.out.println(e.getKey() + " -> " + e.getValue());'),
+  // ---- Graphs — DFS deck ----
+  RC('rc-graph-what', 'Graphs — DFS',
+    'Graph basics — the terminology interviewers assume you know?',
+    `A graph is **nodes** (vertices) joined by **edges** (connections). A binary tree is just a graph with strict rules: one parent, at most two children.
+• **Directed** edge = one way (A to B only). **Undirected** = both ways (A to B and B to A). Arrows vs plain lines.
+• **Neighbors** = two nodes joined by an edge.
+• **Indegree** = edges entering a node. **Outdegree** = edges leaving it.
+• **Connected component** = a group of nodes all reachable from one another. A tree has exactly one.
+• **Cyclic vs acyclic** = whether a path can loop back to a node you already visited.
+• Key mindset: the graph does NOT exist in memory — only the idea does. The input gives you edges; you decide how to represent and walk it.`),
+  RC('rc-graph-formats', 'Graphs — DFS',
+    'The 4 formats a graph is handed to you in?',
+    `• **Array of edges** — 2D array, each [x, y] is an edge. Must pre-process before you can traverse.
+• **Adjacency list** — graph[i] already IS node i list of neighbors. Most convenient, no pre-processing.
+• **Adjacency matrix** — n x n grid, graph[i][j] == 1 means an edge i to j. Costs O(n^2) space.
+• **Matrix / grid with a story** — each cell (row, col) is a node; neighbors are the 4 adjacent cells. Edges come from the problem text, not the input.
+The first three number nodes 0 to n-1. The grid does not — each cell is its own node.`),
+  RC('rc-graph-adjlist', 'Graphs — DFS',
+    'Edge list to adjacency list — what it looks like and how to build it?',
+    `The adjacency list is a map of **node to list of neighbors**.
+For edges [[0,1],[1,2],[2,0],[2,3]] (directed) it becomes:
+• 0 to [1], 1 to [2], 2 to [0, 3], 3 to []
+Build by looping edges: for each [u, v] add v to u list. If **undirected**, also add u to v list. computeIfAbsent creates the empty list the first time you touch a key, so you never dereference null.`,
+    `Map<Integer, List<Integer>> graph = new HashMap<>();
+for (int[] e : edges) {
+    int u = e[0], v = e[1];
+    graph.computeIfAbsent(u, k -> new ArrayList<>()).add(v);
+    graph.computeIfAbsent(v, k -> new ArrayList<>()).add(u); // undirected only
+}`),
+  RC('rc-graph-matrix-build', 'Graphs — DFS',
+    'Edge list to adjacency matrix — and what does the boolean undirected do?',
+    `matrix[from][to] = 1 marks an edge from to.
+• The **boolean undirected** parameter is just a switch. When true, it also sets matrix[to][from] = 1 so the edge works both ways.
+• When false (directed), only the one cell is set.
+• So a single function serves both graph kinds — the caller passes true for undirected, false for directed.`,
+    `int[][] edgeListToMatrix(int n, int[][] edges, boolean undirected) {
+    int[][] matrix = new int[n][n];
+    for (int[] edge : edges) {
+        int from = edge[0], to = edge[1];
+        matrix[from][to] = 1;
+        if (undirected) matrix[to][from] = 1;
+    }
+    return matrix;
+}`),
+  RC('rc-graph-grid-vs-matrix', 'Graphs — DFS',
+    'Grid vs adjacency matrix — are they the same thing?',
+    `No — they look alike (both 2D arrays) but mean different things.
+• **Adjacency matrix**: rows and columns are **node labels**. matrix[i][j] == 1 means node i connects to node j. Size is n x n where n = number of nodes.
+• **Grid**: each **cell itself is a node** (land/water, a village, a room). Neighbors are the physically adjacent cells (up/down/left/right), not a 1 flag.
+• Quick test: does [i][j] describe a **connection between node i and node j** (matrix), or is [i][j] **a place that is itself a node** (grid)?`),
+  RC('rc-graph-dfs', 'Graphs — DFS',
+    'The recursive graph DFS template (adjacency list)?',
+    `• Mark the node visited **first**, then recurse into each unvisited neighbor.
+• visited is what stops you walking in circles — without it, an undirected edge A to B loops A to B to A forever.
+• getOrDefault(node, empty list) means a node with no entry simply loops zero times (no null crash).`,
+    `boolean[] visited = new boolean[n];
+
+void dfs(int node) {
+    visited[node] = true;
+    for (int nb : graph.getOrDefault(node, new ArrayList<>())) {
+        if (!visited[nb]) dfs(nb);
+    }
+}`),
+  RC('rc-graph-visited', 'Graphs — DFS',
+    'Why do graphs need a visited set when trees did not?',
+    `• In a tree you only move **down** — once you leave a node you can never return, so nothing repeats.
+• In a graph you can have A to B and B to A and bounce forever. visited stops re-visits and infinite cycles.
+• **boolean[] visited** (indices 0 to n-1) is the fast choice when nodes are numbered 0 to n-1; a HashSet works for any node type. Same O(1) check, same overall complexity — just an implementation detail.`),
+  RC('rc-graph-components', 'Graphs — DFS',
+    'Counting connected components — the outer-loop pattern?',
+    `• One DFS from any node paints its **entire** component as visited.
+• So loop every node 0 to n-1: each time you hit an **unvisited** one, that is a brand-new component, so count++ then dfs to mark the rest of it.
+• visited guarantees you never count the same component twice.
+• Number of Provinces, Number of Islands, Number of Connected Components are all THIS problem — only the input format changes.`,
+    `int count = 0;
+for (int i = 0; i < n; i++) {
+    if (!visited[i]) {   // an untouched node = a new component
+        count++;
+        dfs(i);
+    }
+}
+return count;`),
+  RC('rc-graph-matrix-dfs', 'Graphs — DFS',
+    'DFS straight on an adjacency matrix (Number of Provinces) — no map?',
+    `You do not have to build a map from a matrix — scan the row instead.
+• At a node, loop neighbor from 0 to n-1; if graph[node][neighbor] == 1 and it is unvisited, recurse.
+• Costs O(n^2) because every visit scans a full row. Building a map first only pays off for **sparse** graphs.`,
+    `void dfs(int node) {
+    visited[node] = true;
+    for (int nb = 0; nb < n; nb++) {
+        if (graph[node][nb] == 1 && !visited[nb]) dfs(nb);
+    }
+}`),
+  RC('rc-graph-islands', 'Graphs — DFS',
+    'Number of Islands — the grid DFS pattern?',
+    `Each land cell "1" is a node; its neighbors are the 4 adjacent cells. Number of islands = number of connected components.
+• Use a **directions** array to hit the 4 neighbors cleanly, and check in-bounds + is-land before recursing.
+• To skip a visited set, flip each visited "1" to "0" (only if you are allowed to modify the input).
+• Time O(m·n): each cell has at most 4 edges, so each visit is O(1).`,
+    `int[][] dirs = {{0,1},{1,0},{0,-1},{-1,0}};
+
+void dfs(int r, int c, char[][] grid) {
+    grid[r][c] = '0';                      // mark visited
+    for (int[] d : dirs) {
+        int nr = r + d[0], nc = c + d[1];
+        if (nr >= 0 && nr < grid.length &&
+            nc >= 0 && nc < grid[0].length &&
+            grid[nr][nc] == '1')
+            dfs(nr, nc, grid);
+    }
+}`),
+  RC('rc-graph-reorder', 'Graphs — DFS',
+    'Reorder Routes so all paths lead to city 0 — the idea and the sign trick?',
+    `Problem: some directed roads point the wrong way. Count the minimum roads to reverse so every city can reach 0.
+• Treat every road as **undirected** so DFS can walk the whole graph out from 0. But remember each road original direction with a **sign**.
+• For an original edge u to v store both: u to [v, 1] (points away from 0 to reverse it) and v to [u, 0] (already toward 0 to fine).
+• DFS outward from 0. Every step that used an original forward edge (sign 1) is a road to flip, so add the sign to the count.
+• The parent check stops you walking straight back along the edge you just came from.`,
+    `// original edge u -> v
+adj.computeIfAbsent(u, k -> new ArrayList<>()).add(new int[]{v, 1});
+adj.computeIfAbsent(v, k -> new ArrayList<>()).add(new int[]{u, 0});
+
+int count = 0;
+void dfs(int node, int parent) {
+    for (int[] e : adj.getOrDefault(node, Collections.emptyList())) {
+        int nb = e[0], sign = e[1];
+        if (nb != parent) {   // do not return along the same edge
+            count += sign;    // sign 1 means this road must be reversed
+            dfs(nb, node);
+        }
+    }
+}`),
+  RC('rc-graph-when', 'Graphs — DFS',
+    'When do I build an adjacency list — and when do I skip it?',
+    `• **Build it** whenever you traverse neighbors: DFS, BFS, connected components, topological sort, path-exists. It turns neighbor lookup into O(1) instead of scanning every edge each time.
+• Facebook analogy: a raw edge list = search every friendship on Earth to find yours; an adjacency list = click the Friends tab.
+• **Skip it** when you never actually walk neighbors. Minimum Vertices to Reach All Nodes only needs **indegree** — a node with indegree 0 cannot be reached, so it must be in the answer. Just count indegrees, no traversal.`),
+  RC('rc-graph-reach', 'Graphs — DFS',
+    'Reachability with DFS — Path Exists and Keys and Rooms?',
+    `Both are the same core move: start a DFS from a fixed node and ask what you can reach.
+• **Find if Path Exists**: build an undirected adjacency list, DFS from source, return true the moment you reach destination.
+• **Keys and Rooms**: the input rooms[i] IS the adjacency list (the keys are the neighbors). DFS from room 0, then check whether the count of visited rooms equals n.`),
+  RC('rc-graph-complexity', 'Graphs — DFS',
+    'DFS complexity — the three cases to quote?',
+    `• General DFS: **O(V + E)** — each node visited once, each edge scanned once (the neighbor loops total E across the whole run).
+• **Adjacency matrix** input: **O(V^2)**, because scanning/building the matrix is V^2 no matter how few edges exist.
+• **Grid** (at most 4 neighbors): **O(m·n)** — each cell is O(1) work.
+• Space: O(V + E) for the graph, plus O(V) for visited and the recursion call stack.`),
 ]
 
 // ---------------------------------------------------------------------------

@@ -1253,6 +1253,145 @@ int dfs(int v) {
 • Next, in build-up order: **directed graphs basics** to **cycle detection** (directed) to **Course Schedule** (detect a cycle) to **DAG + topological sort** to **Course Schedule II** (the order) to then **BFS** problems.
 • Core DAG / topological-sort problems Amazon leans on (roughly 8 to 12): **Course Schedule**, **Course Schedule II**, **Alien Dictionary**, **Parallel Courses**. Also do **Clone Graph**.
 • Fastest path: jump straight into Course Schedule — it teaches directed graphs and cycle detection in context.`),
+  // ---- Stacks & Queues deck ----
+  RC('rc-sq-model', 'Stacks & Queues',
+    'Stack vs Queue — the model and which Java class to grab?',
+    `• **Stack = LIFO** (last in, first out) — push and pop at the **same** end. Undo, matching brackets, iterative DFS, backtracking.
+• **Queue = FIFO** (first in, first out) — add at back, remove at front. BFS, level-order, scheduling.
+• In Java, reach for **ArrayDeque** for BOTH — it is the fast, modern choice. Avoid the legacy Stack class (it is synchronized and slower).`,
+    `Deque<Integer> stack = new ArrayDeque<>();   // use as a stack
+Queue<Integer> queue = new ArrayDeque<>();   // use as a queue
+// Do NOT use: Stack<Integer> s = new Stack<>();  // legacy, slow`),
+  RC('rc-sq-stack-api', 'Stacks & Queues',
+    'Stack API on an ArrayDeque?',
+    `Four moves, all O(1):
+• **push(x)** — add to the top.
+• **pop()** — remove and return the top (throws if empty).
+• **peek()** — look at the top without removing (null if empty).
+• **isEmpty()** — always check before pop.
+ArrayDeque does NOT allow null elements — pushing null throws.`,
+    `Deque<Integer> st = new ArrayDeque<>();
+st.push(10);          // [10]
+st.push(20);          // [20, 10]  top is 20
+st.peek();            // 20  (not removed)
+st.pop();             // 20  (removed) -> [10]
+st.isEmpty();         // false`),
+  RC('rc-sq-queue-api', 'Stacks & Queues',
+    'Queue API — and the offer/poll vs add/remove distinction?',
+    `Use the **offer / poll / peek** trio — they return a special value on empty instead of throwing:
+• **offer(x)** — add at the back.
+• **poll()** — remove and return the front, or **null** if empty.
+• **peek()** — front without removing, or null if empty.
+The alternatives add / remove / element **throw** an exception when empty — offer/poll are safer in a loop.`,
+    `Queue<Integer> q = new ArrayDeque<>();
+q.offer(1);           // [1]
+q.offer(2);           // [1, 2]
+q.peek();             // 1  (front, not removed)
+q.poll();             // 1  (removed) -> [2]
+q.poll();             // 2
+q.poll();             // null (empty) — does NOT throw`),
+  RC('rc-sq-deque', 'Stacks & Queues',
+    'Deque — the one class that is both a stack and a queue?',
+    `A **Deque** (double-ended queue) opens at BOTH ends, so it can be either:
+• As a **stack**: push / pop / peek all act on the **first** end.
+• As a **queue**: offerLast to add at the back, pollFirst to remove from the front.
+• Explicit ends: addFirst / addLast / pollFirst / pollLast / peekFirst / peekLast.
+This is also the structure behind the sliding-window-maximum trick (see the Monotonic Stack & Queue deck).`,
+    `Deque<Integer> dq = new ArrayDeque<>();
+dq.addFirst(1);   // front
+dq.addLast(2);    // back
+dq.peekFirst();   // 1
+dq.peekLast();    // 2
+dq.pollFirst();   // 1
+dq.pollLast();    // 2`),
+  RC('rc-sq-when', 'Stacks & Queues',
+    'Which one do I reach for — the signals?',
+    `• Need the **most recent** thing, or to reverse / match / backtrack? Stack. (Valid Parentheses, iterative DFS, Min Stack, next-greater.)
+• Need to process in **arrival order** or explore **level by level**? Queue. (BFS, level-order traversal, shortest path on an unweighted graph.)
+• Need a running max/min over a moving window, or access to both ends? Deque.
+Rule of thumb: **DFS uses a stack, BFS uses a queue** — that pairing alone answers most graph/tree questions.`),
+  RC('rc-sq-parens', 'Stacks & Queues',
+    'Valid Parentheses — the classic stack pattern?',
+    `Scan the string. On an **opening** bracket, push the bracket you expect to close it. On a **closing** bracket, it is valid only if it matches what is on top.
+• Empty stack when you hit a closer, or a mismatch, means invalid.
+• At the end the stack must be **empty** — leftover openers mean unbalanced.
+This "push the expected match" trick avoids a separate pair-lookup map.`,
+    `Deque<Character> st = new ArrayDeque<>();
+for (char c : s.toCharArray()) {
+    if (c == '(') st.push(')');
+    else if (c == '[') st.push(']');
+    else if (c == '{') st.push('}');
+    else if (st.isEmpty() || st.pop() != c) return false;
+}
+return st.isEmpty();`),
+  RC('rc-sq-minstack', 'Stacks & Queues',
+    'Min Stack — O(1) getMin with an aux value?',
+    `Support push, pop, top, and **getMin** all in O(1). Trick: store the **minimum-so-far alongside each value**, so every entry knows the min of everything beneath it.
+• On push, the new min is min(x, current top min).
+• getMin just reads the top entry min — no scanning.
+• Pop removes the pair, and the min automatically reverts.`,
+    `Deque<int[]> st = new ArrayDeque<>();   // each entry: {value, minSoFar}
+
+void push(int x) {
+    int min = st.isEmpty() ? x : Math.min(x, st.peek()[1]);
+    st.push(new int[]{x, min});
+}
+int pop()    { return st.pop()[0]; }
+int top()    { return st.peek()[0]; }
+int getMin() { return st.peek()[1]; }`),
+  RC('rc-sq-iter-dfs', 'Stacks & Queues',
+    'Iterative DFS with an explicit stack?',
+    `Same traversal as recursive DFS, but you hold the stack yourself (handy when recursion depth is a worry).
+• Push the start, then loop: pop a node, skip if already visited, mark it, push its unvisited neighbors.
+• Check visited on **pop** (not only on push) since a node can be pushed more than once before it is processed.`,
+    `Deque<Integer> stack = new ArrayDeque<>();
+stack.push(start);
+while (!stack.isEmpty()) {
+    int node = stack.pop();
+    if (visited[node]) continue;
+    visited[node] = true;
+    for (int nb : graph.getOrDefault(node, new ArrayList<>()))
+        if (!visited[nb]) stack.push(nb);
+}`),
+  RC('rc-sq-bfs', 'Stacks & Queues',
+    'BFS with a queue — the level-by-level template?',
+    `Queue drives breadth-first traversal — the backbone of level-order and shortest-path-on-unweighted-graph problems.
+• Offer the start, mark it visited, then loop while the queue is non-empty.
+• Capture **size = q.size()** at the top of each loop to process exactly **one level** at a time.
+• Mark visited **when you enqueue** (not when you dequeue) so a node is never added twice.`,
+    `Queue<Integer> q = new ArrayDeque<>();
+q.offer(start); visited[start] = true;
+while (!q.isEmpty()) {
+    int size = q.size();                 // nodes on this level
+    for (int i = 0; i < size; i++) {
+        int node = q.poll();
+        for (int nb : graph.getOrDefault(node, new ArrayList<>()))
+            if (!visited[nb]) { visited[nb] = true; q.offer(nb); }
+    }
+    // depth++ here for shortest-path length
+}`),
+  RC('rc-sq-queue-from-stacks', 'Stacks & Queues',
+    'Implement a Queue using two Stacks (amortized O(1))?',
+    `A classic Amazon warm-up. Use an **in** stack for pushes and an **out** stack for pops.
+• push: always onto **in**.
+• pop / peek: if **out** is empty, pour all of **in** into **out** (this reverses the order, so the oldest ends up on top), then pop from out.
+• Amortized O(1): each element is moved from in to out at most once.`,
+    `Deque<Integer> in = new ArrayDeque<>(), out = new ArrayDeque<>();
+
+void push(int x) { in.push(x); }
+
+int pop() {
+    if (out.isEmpty())
+        while (!in.isEmpty()) out.push(in.pop());  // reverse, once
+    return out.pop();
+}`),
+  RC('rc-sq-pitfalls', 'Stacks & Queues',
+    'Java gotchas that bite in an interview?',
+    `• **Do not use the legacy Stack class** — it is synchronized and slow. Use ArrayDeque as a stack.
+• **ArrayDeque forbids null** — pushing null throws NullPointerException; that is why poll() returns null to mean empty.
+• **offer/poll/peek** return a value on empty; **add/remove/element** throw. Pick the non-throwing trio inside loops.
+• Always guard with **isEmpty()** before pop/poll on a stack.
+• LinkedList also implements Queue and Deque, but ArrayDeque is faster for both — prefer it unless you need list indexing.`),
 ]
 
 // ---------------------------------------------------------------------------

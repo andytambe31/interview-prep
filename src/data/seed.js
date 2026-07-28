@@ -1222,6 +1222,37 @@ void dfs(int node, int parent) {
 • **Adjacency matrix** input: **O(V^2)**, because scanning/building the matrix is V^2 no matter how few edges exist.
 • **Grid** (at most 4 neighbors): **O(m·n)** — each cell is O(1) work.
 • Space: O(V + E) for the graph, plus O(V) for visited and the recursion call stack.`),
+  RC('rc-graph-restricted', 'Graphs — DFS',
+    'Reachable Nodes With Restrictions — DFS that returns a count?',
+    `It is a tree (undirected, n-1 edges). Count how many nodes are reachable from 0 **without stepping on a restricted node**.
+• Put the restricted nodes into a **HashSet** for O(1) blocking, then build the undirected adjacency list as usual.
+• The twist: dfs **returns a count**. Each call starts at 1 (counting itself), then adds dfs(neighbor) for every neighbor that is unvisited AND not restricted.
+• The visited check prevents walking back; the restricted check prunes whole branches you are not allowed to enter.`,
+    `Set<Integer> blocked = new HashSet<>();     // built from restricted[]
+
+int dfs(int v) {
+    visited[v] = true;
+    int count = 1;                          // count this node
+    for (int w : graph.getOrDefault(v, new ArrayList<>())) {
+        if (!visited[w] && !blocked.contains(w))
+            count += dfs(w);                // add up the subtree
+    }
+    return count;
+}
+// answer = dfs(0)`),
+  RC('rc-graph-dag', 'Graphs — DFS',
+    'DAG vs topological sort — what is the difference?',
+    `They are related but not the same thing.
+• A **DAG** (directed acyclic graph) is a graph **type**: edges have direction and there are no cycles. Think course prerequisites.
+• **Topological sort** is the **algorithm** you run on a DAG: order the nodes so every edge points forward — every prerequisite comes before the course that needs it. A valid topological order exists only if the graph is a DAG (no cycle).
+• Analogy: **Course Schedule** (can you finish? = detect a cycle) vs **Course Schedule II** (give the actual order = produce a topological sort).
+• Learn order: directed graphs first, then cycle detection, then DAGs, then topological sort.`),
+  RC('rc-graph-roadmap', 'Graphs — DFS',
+    'Amazon graph roadmap — what to cover next and in what order?',
+    `Already covered: DFS traversal, visited, grid DFS, adjacency lists, connected components (Provinces), reachability.
+• Next, in build-up order: **directed graphs basics** to **cycle detection** (directed) to **Course Schedule** (detect a cycle) to **DAG + topological sort** to **Course Schedule II** (the order) to then **BFS** problems.
+• Core DAG / topological-sort problems Amazon leans on (roughly 8 to 12): **Course Schedule**, **Course Schedule II**, **Alien Dictionary**, **Parallel Courses**. Also do **Clone Graph**.
+• Fastest path: jump straight into Course Schedule — it teaches directed graphs and cycle detection in context.`),
 ]
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import Coding from './components/Coding.jsx'
 import QuestionPage from './components/QuestionPage.jsx'
 import LLD from './components/LLD.jsx'
 import Revision from './components/Revision.jsx'
+import StudyGuide from './components/StudyGuide.jsx'
 import Behavioral from './components/Behavioral.jsx'
 import Resume from './components/Resume.jsx'
 import Logistics from './components/Logistics.jsx'
@@ -18,6 +19,7 @@ const NAV = [
   { id: 'coding', label: 'Coding', hint: 'DSA problems & patterns' },
   { id: 'lld', label: 'LLD', hint: 'Object-oriented design' },
   { id: 'revision', label: 'Revision', hint: 'Flashcards' },
+  { id: 'guide', label: 'Study Guide', hint: 'Read-through notes' },
   { id: 'behavioral', label: 'Behavioral', hint: 'Principles & stories' },
   { id: 'resume', label: 'Résumé', hint: 'Know it cold' },
   { id: 'logistics', label: 'Logistics', hint: 'Schedule & day-of' },
@@ -63,6 +65,8 @@ export default function App() {
         return <LLD />
       case 'revision':
         return <Revision />
+      case 'guide':
+        return <StudyGuide />
       case 'behavioral':
         return <Behavioral />
       case 'resume':

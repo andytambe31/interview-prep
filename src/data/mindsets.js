@@ -1330,6 +1330,167 @@ class FixedWindowLimiter implements RateLimiter {
     ],
     takeaway: 'A rate limiter is a Strategy problem with a concurrency sting in the tail. Scope it (allow/deny per client per window, O(1), single-node first), put the algorithm behind a RateLimiter interface so it is swappable (token bucket by default — lazy refill, allows bursts), and be ready to explain the fixed-window boundary burst. The two signals that separate levels: the race on the token count (make consume atomic per bucket, create buckets with computeIfAbsent) and knowing that in-memory state gives an N x M effective limit across nodes, fixed by centralizing in Redis with an atomic check-and-decrement.',
   },
+
+  // ---------------------------------------------------------------------
+  'ood-amazon-locker': {
+    title: 'Design an Amazon Locker',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Design the classes for an Amazon Locker system: lockers of different sizes across locations, assign a package to a suitable available locker, generate a pickup code, a courier deposits and a customer picks up, and handle expiry and return. Low-level (class) design — narrate the classes, patterns, and concurrency.',
+    beats: [
+      S('Clarify requirements'),
+      I("Design an Amazon Locker system. Before any class, scope it with me."),
+      TH("Standard LLD opening: scope before classes. Functional flow, then non-functional (concurrency, scale), then push external bits out of scope.",
+        'Scope first: functional flow + non-functional (concurrency/scale), external delivery out of scope.'),
+      SAY("Functional: lockers come in sizes — small, medium, large — spread across multiple locations. A package arrives, we assign it a suitable available locker, generate a pickup code, a courier deposits it, and the customer picks it up with that code. We also handle expiry — if it is never collected — and the return flow. Is that the core?"),
+      I("Yes. Anything non-functional you want to call out?",
+        'Will you raise concurrency and scale unprompted.'),
+      SAY("Two things: assignments are concurrent — many packages arriving at once, and we must never double-assign one locker — and it scales across many locations. I will treat the actual SMS or email delivery as an external boundary, just a NotificationService."),
+      I("Good. How do you decide which locker a package goes into?",
+        'Do you see allocation as a swappable policy — Strategy.'),
+      TH("Allocation is a policy that will change: smallest-fit to keep big lockers free for big packages, or nearest-to-customer, or load-balanced. That variability screams Strategy.",
+        'Allocation policy varies (smallest-fit / nearest / balanced) → Strategy pattern.'),
+      SAY("Smallest-fit by default, so large lockers stay free for large packages — but I will put it behind an AllocationStrategy interface, so nearest-location or load-balancing can drop in without touching the system."),
+      S('Core entities / classes'),
+      SAY("The nouns, each with one job: LockerSystem — the Singleton entry point that owns the locations; LockerLocation — holds many Lockers; Locker — has a size and a status; Package — the item, with its size; Code — the OTP that maps to a locker and expires; AllocationStrategy — picks the locker; NotificationService — tells the customer. Plus enums Size and LockerStatus."),
+      CODE(`enum Size { S, M, L }
+enum LockerStatus { AVAILABLE, OCCUPIED, OUT_OF_SERVICE }
+
+class Locker {
+    final String id; final Size size;
+    private LockerStatus status = LockerStatus.AVAILABLE;
+    private Package current;                      // set only while occupied
+
+    Locker(String id, Size size) { this.id = id; this.size = size; }
+    boolean fits(Size pkg)   { return size.ordinal() >= pkg.ordinal(); }
+    boolean isAvailable()    { return status == LockerStatus.AVAILABLE; }
+}
+
+class LockerLocation {                            // composition: owns its lockers
+    final String id;
+    private final List<Locker> lockers = new ArrayList<>();
+    List<Locker> available() {
+        return lockers.stream().filter(Locker::isAvailable).toList();
+    }
+}`),
+      S('Locker lifecycle'),
+      I("A locker moves through states — Available, Occupied, Out-of-service. How do you model that?",
+        'State pattern vs a flag — and do you show judgment about which fits.'),
+      TH("This is the State pattern textbook case. But it is only three states with simple transitions, so guarded transitions on a status enum are honestly cleaner here. I would call out that if the lifecycle grew — reserved, in-transit, damaged — I would promote it to full State classes, exactly like a vending machine.",
+        'State pattern fits, but for 3 states guarded enum transitions are simpler; promote to State classes if the lifecycle grows.'),
+      SAY("It is the State pattern in spirit. For just three states I would keep it pragmatic — guarded transitions on the status, so an illegal move like depositing into an available locker is rejected in one place. If the lifecycle grew, I would promote each state to a class like a vending machine. Crucially the Available-to-Occupied transition must be atomic, which I will come back to for concurrency."),
+      CODE(`class Locker {
+    // ... id, size, status, current ...
+    synchronized boolean claim(Package p) {       // atomic Available -> Occupied
+        if (status != LockerStatus.AVAILABLE) return false;
+        status = LockerStatus.OCCUPIED; current = p; return true;
+    }
+    synchronized Package release() {              // Occupied -> Available (pickup/return)
+        Package p = current; current = null;
+        if (status == LockerStatus.OCCUPIED) status = LockerStatus.AVAILABLE;
+        return p;
+    }
+}`),
+      S('Codes / OTP'),
+      SAY("The Code holds the OTP string, the locker it maps to, and an expiry timestamp. assignLocker generates it; deposit and pickup look it up; releaseExpired sweeps the expired ones. I keep a registry from OTP to Code for O(1) lookup."),
+      CODE(`class Code {
+    final String otp; final String lockerId; final long expiresAt;
+    Code(String otp, String lockerId, long expiresAt) {
+        this.otp = otp; this.lockerId = lockerId; this.expiresAt = expiresAt;
+    }
+    boolean isExpired(long now) { return now > expiresAt; }
+}`),
+      S('Design patterns'),
+      I("Name the patterns you are using and justify each.",
+        'Patterns named WITH reasons, not as buzzwords.'),
+      TH("Three earn their place plus Singleton. Strategy for allocation, State for the locker lifecycle, Observer for notification so the system does not call SMS directly.",
+        'Strategy (allocation), State (lifecycle), Observer (notify), Singleton (system) — each justified.'),
+      SAY("Strategy — AllocationStrategy, smallest-fit or nearest, swappable. State — the locker lifecycle. Observer — the system does not call SMS directly; NotificationService subscribes to an assignment event and gets notified, so I can add email or push later without touching assign. Singleton — one LockerSystem as the source of truth."),
+      CODE(`interface AllocationStrategy { Locker choose(List<LockerLocation> locs, Package p); }
+
+class SmallestFitStrategy implements AllocationStrategy {
+    public Locker choose(List<LockerLocation> locs, Package p) {
+        Locker best = null;
+        for (LockerLocation loc : locs)
+            for (Locker l : loc.available())
+                if (l.fits(p.size) &&
+                    (best == null || l.size.ordinal() < best.size.ordinal()))
+                    best = l;
+        return best;                              // null if nothing fits
+    }
+}
+
+interface LockerObserver { void onAssigned(Package p, Locker l, Code c); }
+class SmsNotifier implements LockerObserver {
+    public void onAssigned(Package p, Locker l, Code c) { /* text the code */ }
+}`),
+      S('Key APIs + flow'),
+      SAY("The surface: Optional<Code> assignLocker(Package); void deposit(String otp); Package pickup(String otp); void releaseExpired(). Trace an assign: the strategy picks the smallest available locker that fits, the locker atomically transitions to Occupied, a Code with an expiry is generated and registered, observers are notified, and the code is returned. Pickup validates the code, releases the locker, and returns the package."),
+      CODE(`class LockerSystem {                              // Singleton
+    private static final LockerSystem INSTANCE = new LockerSystem();
+    public static LockerSystem getInstance() { return INSTANCE; }
+
+    private final List<LockerLocation> locations = new ArrayList<>();
+    private AllocationStrategy strategy = new SmallestFitStrategy();     // Strategy
+    private final Map<String, Code> codes = new ConcurrentHashMap<>();
+    private final List<LockerObserver> observers = new ArrayList<>();    // Observer
+
+    public Optional<Code> assignLocker(Package p) {
+        Locker l = strategy.choose(locations, p);
+        if (l == null || !l.claim(p)) return Optional.empty();   // no fit OR lost the race
+        Code code = new Code(genOtp(), l.id, now() + TTL_MS);
+        codes.put(code.otp, code);
+        observers.forEach(o -> o.onAssigned(p, l, code));
+        return Optional.of(code);
+    }
+
+    public Package pickup(String otp) {
+        Code c = codes.get(otp);
+        if (c == null || c.isExpired(now()))
+            throw new IllegalArgumentException("Invalid or expired code");
+        Package p = lockerById(c.lockerId).release();
+        codes.remove(otp);
+        return p;
+    }
+}`),
+      S('Concurrency'),
+      I("Two packages arrive at the same instant and both want the last medium locker. What happens?",
+        'Do you catch the race on the shared locker — the senior-level signal.'),
+      TH("Find-then-occupy is the race: both threads see the same available locker and both try to take it. I made claim() synchronized and status-guarded, so the Available-to-Occupied flip is atomic — exactly one wins, and the loser gets false and re-runs the strategy for the next locker. Locking per locker, not system-wide, keeps throughput up.",
+        'find-then-claim is a race → atomic guarded claim() (one winner); loser retries; lock per locker not globally.'),
+      SAY("There is a race on the last locker. My claim() is synchronized and checks the status inside the lock, so the transition is atomic — only one thread claims it. The other gets false and the system re-runs allocation for the next fit. The lock is per locker, so packages heading to different lockers never block each other."),
+      I("Exactly — that atomic claim is the point."),
+      S('Edge cases'),
+      SAY("The ones I would handle: no locker of the required size or the package is too big — assignLocker returns empty, and the caller queues or routes elsewhere. Wrong or expired code — pickup and deposit reject it. Never picked up — releaseExpired sweeps expired codes, frees those lockers, and kicks off the return flow so the courier reclaims the package. Out-of-service lockers are simply excluded by the strategy since they are not available."),
+      CODE(`public void releaseExpired() {
+    long now = now();
+    for (Code c : codes.values()) {
+        if (c.isExpired(now)) {
+            Package p = lockerById(c.lockerId).release();  // free the locker
+            codes.remove(c.otp);
+            returnToCourier(p);                            // return flow
+        }
+    }
+}`),
+      S('Extensibility & trade-offs'),
+      I("Add refrigerated lockers for groceries.",
+        'Does new behaviour drop in via OCP without editing existing flow.'),
+      TH("A refrigerated locker is a new attribute plus an allocation rule that matches a package requirement — the Strategy absorbs it, no edits to assign. Same for new sizes and multi-package orders.",
+        'New locker types / rules plug in via Strategy + attributes — Open/Closed, no edits to the assign flow.'),
+      SAY("Refrigerated becomes a locker attribute plus an allocation rule that matches a package needing cold storage — a new or extended AllocationStrategy, so the assign flow is untouched (Open/Closed). New sizes are an enum plus a strategy tweak. Multi-package orders map one Order to several lockers and codes. The one trade-off I would flag: smallest-fit can fragment — many mediums taken, then a large arrives with none free — so a reservation or rebalancing policy is the natural follow-up, and again it is just another Strategy."),
+      I("That is a complete design — you scoped it, used three patterns with real justification, modelled the lifecycle sensibly, handled expiry and return, and caught the concurrency race on the last locker. Strong work."),
+    ],
+    rubric: [
+      'Scoped requirements first: functional (sized lockers across locations, assign, code, deposit/pickup, expiry/return) + non-functional (concurrent assignment, scale), external delivery out of scope',
+      'Core entities each single-responsibility: LockerSystem (Singleton), LockerLocation, Locker (+status), Package, Code (OTP+expiry), AllocationStrategy, NotificationService',
+      'Correct relationships: composition (location owns lockers), Order-to-Locker via a Code, notifier observes assignment',
+      'Three patterns justified — Strategy (allocation), State/lifecycle (locker), Observer (notification) — plus Singleton; and judgment on State-vs-enum for only 3 states',
+      'Key APIs: assignLocker → Optional<Code>, deposit, pickup → Package, releaseExpired; O(1) code lookup via a registry',
+      'Caught the concurrency race on the last locker: atomic guarded claim() (one winner, loser retries), lock per locker not globally',
+      'Edge cases (no fit / too big, wrong or expired code, out-of-service, never-picked-up return flow) and extensibility (refrigerated / new sizes / multi-package) via OCP',
+    ],
+    takeaway: 'Amazon Locker is the problem that shows three patterns at once: Strategy for allocation (smallest-fit / nearest, swappable), State for the locker lifecycle (Available / Occupied / Out-of-service — though for only three states, guarded enum transitions beat full State classes; say that), and Observer for notification so the system never calls SMS directly. Scope it, turn nouns into single-responsibility classes, and — the senior signals — make claiming the last locker atomic (guarded claim(), loser retries) and close with the expiry/return flow plus OCP extensibility (refrigerated lockers = a new allocation rule, not an edit).',
+  },
 }
 
 export function mindsetFor(id) {

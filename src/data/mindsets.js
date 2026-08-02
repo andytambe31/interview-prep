@@ -1206,6 +1206,130 @@ interface VendingMachineState {
     ],
     takeaway: 'A vending machine is the canonical STATE pattern. When behaviour depends on a mode and you have many (state x event) combinations, model each state as a class implementing a shared interface and let the context delegate to currentState — instead of a switch-on-state copied into every method. Scope the edge cases first (they become your states), justify State over enum+switch, and close with new-state-via-OCP plus one-transaction concurrency. Contrast it with Parking Lot, which leaned on Singleton / Factory / Strategy — together they cover the patterns you will reach for most.',
   },
+
+  // ---------------------------------------------------------------------
+  'ood-rate-limiter': {
+    title: 'Design a Rate Limiter',
+    difficulty: 'Medium',
+    cast: CAST,
+    prompt: 'Design the classes for a rate limiter: given a client id, decide whether to allow or deny each incoming request so that no client exceeds N requests per time window. Low-level (class) design — narrate your design, the algorithm, and the concurrency.',
+    beats: [
+      S('Clarify requirements'),
+      I("Design a rate limiter for me. Before you write any class, scope it with me."),
+      TH("Same discipline as any LLD: scope before classes. Split functional from non-functional, and pin down the fuzzy parts — single node or distributed, which algorithm — instead of assuming.",
+        'Scope first: functional vs non-functional, and surface the ambiguous parts (single-node vs distributed).'),
+      SAY("Functional first: given a client identifier, for each request I return allow or deny, such that a client can make at most N requests per time window — say 100 per minute. Deny just means the caller returns a 429. Is that the core?"),
+      I("Yes. Does this run on one server or many behind a load balancer?",
+        'Will you surface the single-node vs distributed question up front.'),
+      SAY("I will design a clean in-memory single-node version first, then show how to make it distributed with a shared store. Non-functionally it sits on the request hot path, so each check must be O(1) and thread-safe — many requests hit it at once."),
+      I("Good. Which algorithm will you use?",
+        'Do you know the rate-limiting algorithms and their trade-offs.'),
+      TH("Three classics: fixed window counter, sliding window, and token bucket. Fixed window is simplest but has the boundary-burst bug. Token bucket allows controlled bursts and refills smoothly — it is the usual production choice. I will pick token bucket but keep the algorithm swappable.",
+        'Fixed window (boundary burst), sliding window (accurate, costlier), token bucket (smooth, allows bursts) — know the trade-offs.'),
+      SAY("I will default to token bucket — it smooths the rate and permits short bursts up to a capacity — but I will keep the algorithm pluggable so a different endpoint can use a different policy."),
+      I("Why keep it pluggable?",
+        'Are you reaching for Strategy with a reason, not as a buzzword.'),
+      TH("Different routes want different limits and even different algorithms. If I hard-code token bucket, adding sliding window later means editing the core. Strategy lets each be a class behind one interface — Open/Closed.",
+        'Strategy pattern: swap the algorithm without touching callers (OCP).'),
+      SAY("Strategy: a RateLimiter interface with a single allow(clientId) method, and TokenBucketLimiter / SlidingWindowLimiter / FixedWindowLimiter as implementations. Callers depend only on the interface, so a new algorithm is a new class — Open/Closed."),
+      S('Core entities / classes'),
+      SAY("The nouns, each with one responsibility: a RateLimiter interface (the Strategy seam); a TokenBucketLimiter that owns the per-client state; a TokenBucket holding tokens + lastRefillTime for one client; and a registry — a Map from clientId to that client's bucket. Optionally a RateLimiterFactory to build the configured limiter."),
+      CODE(`interface RateLimiter {
+    boolean allow(String clientId);          // true = permit, false = reject (429)
+}
+
+class TokenBucketLimiter implements RateLimiter {
+    private final int capacity;              // max tokens (burst size)
+    private final double refillPerSec;       // steady rate
+    private final Map<String, TokenBucket> buckets = new ConcurrentHashMap<>();
+
+    TokenBucketLimiter(int capacity, double refillPerSec) {
+        this.capacity = capacity; this.refillPerSec = refillPerSec;
+    }
+
+    public boolean allow(String clientId) {
+        TokenBucket bucket = buckets.computeIfAbsent(
+            clientId, k -> new TokenBucket(capacity, refillPerSec));
+        return bucket.tryConsume();
+    }
+}`),
+      S('The token bucket algorithm'),
+      I("Walk me through how one bucket works.",
+        'Can you explain the algorithm precisely, including refill.'),
+      TH("A bucket has a capacity and refills at a fixed rate. Every request costs one token; if none are available, deny. The trick is lazy refill — instead of a background timer, I compute how many tokens accrued from the elapsed time on each call. No thread needed.",
+        'Token bucket with LAZY refill: compute accrued tokens from elapsed time on access — no timer thread.'),
+      SAY("Each client's bucket holds up to capacity tokens and refills at refillPerSec. A request consumes one token if available, else it is denied. I refill lazily: on each call I add (elapsed_seconds x rate) tokens, capped at capacity, then try to consume one. That avoids any background thread."),
+      CODE(`class TokenBucket {
+    private final int capacity;
+    private final double refillPerSec;
+    private double tokens;
+    private long lastRefillNanos;
+
+    TokenBucket(int capacity, double refillPerSec) {
+        this.capacity = capacity; this.refillPerSec = refillPerSec;
+        this.tokens = capacity;                       // start full
+        this.lastRefillNanos = System.nanoTime();
+    }
+
+    synchronized boolean tryConsume() {               // atomic per bucket
+        refill();
+        if (tokens >= 1) { tokens -= 1; return true; }
+        return false;
+    }
+    private void refill() {
+        long now = System.nanoTime();
+        double added = (now - lastRefillNanos) / 1e9 * refillPerSec;
+        tokens = Math.min(capacity, tokens + added);  // never exceed capacity
+        lastRefillNanos = now;
+    }
+}`),
+      S('Concurrency'),
+      I("Two requests from the same client arrive at the exact same instant. What happens?",
+        'Do you catch the race on the token count — the senior-level signal.'),
+      TH("Reading tokens, checking, then decrementing is a read-modify-write — a classic race. Two threads could both see one token and both pass, letting the client exceed the limit. I make tryConsume atomic per bucket (synchronized on the bucket), and the registry is a ConcurrentHashMap with computeIfAbsent so two threads never build two buckets for one client. Locking per bucket, not globally, means different clients never block each other.",
+        'The count is a read-modify-write race → make consume atomic PER bucket; ConcurrentHashMap.computeIfAbsent for safe creation; per-bucket lock avoids global contention.'),
+      SAY("There is a race on the token count — a read-modify-write. I make tryConsume synchronized on the bucket so the check-and-decrement is atomic, and I create buckets through ConcurrentHashMap.computeIfAbsent so two threads can never make two buckets for one client. The lock is per bucket, so different clients proceed in parallel."),
+      I("Good — that per-bucket locking point is exactly right."),
+      S('Fixed vs sliding window'),
+      I("You said fixed window has a bug. Show me, and how sliding window helps.",
+        'Depth on the algorithm trade-off, not just the happy path.'),
+      TH("Fixed window keeps a counter that resets at each boundary. A client can send N requests at 0:59 and another N at 1:00 — 2N within two seconds, straddling the reset. Sliding window fixes it: a log of timestamps counts only requests in the last rolling window (accurate but O(N) memory), or a sliding-window counter blends the current and previous window as a cheap approximation.",
+        'Fixed-window boundary burst = up to 2N across a reset; sliding window (log or weighted counter) removes it.'),
+      SAY("Fixed window resets its counter on the boundary, so a burst straddling the reset lets through almost 2N requests in an instant. Sliding-window-log keeps request timestamps and counts those within the last rolling minute — accurate, but O(N) memory per client. The sliding-window counter is a weighted blend of the current and previous window that kills the burst cheaply. Token bucket sidesteps the whole issue because refill is continuous."),
+      CODE(`// Fixed window — simple but bursty at the boundary
+class FixedWindowLimiter implements RateLimiter {
+    private final int limit; private final long windowMs;
+    private final Map<String, int[]> counters = new ConcurrentHashMap<>();
+    // counters: clientId -> [windowStartMs, countInWindow]
+    public synchronized boolean allow(String clientId) {
+        long now = System.currentTimeMillis();
+        int[] c = counters.computeIfAbsent(clientId, k -> new int[]{(int) now, 0});
+        if (now - c[0] >= windowMs) { c[0] = (int) now; c[1] = 0; }  // reset
+        if (c[1] < limit) { c[1]++; return true; }
+        return false;
+    }
+}`),
+      S('Key APIs'),
+      SAY("The public surface is intentionally tiny: boolean allow(String clientId) on the RateLimiter interface — one method, O(1). A RateLimiterFactory builds the configured limiter (algorithm + capacity + rate) so callers never new a concrete limiter."),
+      S('Extensibility & trade-offs'),
+      I("Now put this behind a load balancer with ten servers. What breaks, and how do you fix it?",
+        'Do you know why in-memory state fails distributed, and the standard fix.'),
+      TH("In-memory buckets are per node. With M servers, each keeps its own count, so the effective limit becomes N x M — the limiter silently leaks. Fix: move the state to a shared store like Redis and make the check-and-decrement atomic with a Lua script (or INCR + EXPIRE for fixed window). Trade-off is a network hop per request; shard by client key to scale.",
+        'Per-node in-memory state → effective limit N x M; centralize in Redis with an atomic Lua check-and-decrement.'),
+      SAY("In-memory state is per node, so ten servers means the real limit is ten times N — it leaks. I would centralize the counter in Redis and make the read-decrement atomic with a Lua script, or INCR with EXPIRE for a fixed window. The cost is a network round-trip per request, which I can mitigate by sharding on the client key. Beyond that: a new algorithm is a new RateLimiter class (OCP), and per-endpoint limits are just a limiter keyed by route plus client."),
+      I("That is a complete design — you scoped it, picked token bucket with justification, kept the algorithm pluggable, nailed the concurrency race, and knew exactly why in-memory breaks distributed. That is the level I look for."),
+    ],
+    rubric: [
+      'Scoped requirements first: functional (allow/deny per client, N per window) + non-functional (O(1) hot path, thread-safe), and surfaced single-node vs distributed up front',
+      'Knew the algorithms and trade-offs: fixed window (boundary burst), sliding window (accurate, costlier), token bucket (smooth, allows bursts)',
+      'Strategy pattern — RateLimiter interface + swappable algorithm classes — justified by OCP, not as a buzzword',
+      'Token bucket explained precisely, including LAZY refill (accrue from elapsed time, no timer thread)',
+      'Caught the concurrency race on the token count: atomic per-bucket consume + ConcurrentHashMap.computeIfAbsent, locking per bucket not globally',
+      'Explained the fixed-window boundary burst and how sliding window fixes it',
+      'Distributed extension: per-node state gives N x M effective limit → centralize in Redis with an atomic (Lua) check-and-decrement; per-endpoint limits via OCP',
+    ],
+    takeaway: 'A rate limiter is a Strategy problem with a concurrency sting in the tail. Scope it (allow/deny per client per window, O(1), single-node first), put the algorithm behind a RateLimiter interface so it is swappable (token bucket by default — lazy refill, allows bursts), and be ready to explain the fixed-window boundary burst. The two signals that separate levels: the race on the token count (make consume atomic per bucket, create buckets with computeIfAbsent) and knowing that in-memory state gives an N x M effective limit across nodes, fixed by centralizing in Redis with an atomic check-and-decrement.',
+  },
 }
 
 export function mindsetFor(id) {
